@@ -118,6 +118,14 @@ async function handleRequest(req, res) {
         return { hash, message, author, date };
       });
       jsonResponse(res, commits);
+    } else if (pathname === '/api/project') {
+      let name = path.basename(PROJECT_DIR);
+      try {
+        const origin = (await execGit(['remote', 'get-url', 'origin'])).trim();
+        const match = origin.match(/\/([^/]+?)(?:\.git)?$/);
+        if (match) name = match[1];
+      } catch {}
+      jsonResponse(res, { name });
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
       const branches = stdout.trim().split('\n').filter(Boolean);

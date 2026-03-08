@@ -1,21 +1,28 @@
+import { useEffect } from 'react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import { useIssues, useReady, useBlocked } from '@/hooks/useBeadsApi'
+import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 
 function App() {
   const { data: issues, loading: issuesLoading, lastUpdated, error: issuesError } = useIssues()
   const { data: ready, loading: readyLoading } = useReady()
   const { data: blocked, loading: blockedLoading } = useBlocked()
+  const { data: project } = useProject()
 
+  const projectName = project?.name || 'beads-board'
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
+
+  useEffect(() => {
+    document.title = projectName
+  }, [projectName])
 
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
-        <h1 className="text-lg font-bold tracking-tight">beads-board</h1>
+        <h1 className="text-lg font-bold tracking-tight">{projectName}</h1>
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-muted-foreground">

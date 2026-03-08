@@ -37,3 +37,8 @@ export function useBranches() {
   const fetchFn = useCallback(() => fetchJson<BranchesResponse>('/api/branches'), [])
   return usePolling(fetchFn, 30000)  // Branches change less often
 }
+
+export function useProject() {
+  const fetchFn = useCallback(() => fetchJson<{ name: string }>('/api/project'), [])
+  return usePolling(fetchFn, 60000)  // Project name rarely changes
+}
