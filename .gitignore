@@ -3,3 +3,4 @@
 .dolt/
 *.db
 .beads-board.pid
+node_modules/
