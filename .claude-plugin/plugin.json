@@ -1,0 +1,6 @@
+{
+  "name": "beads-board",
+  "description": "Kanban dashboard and git log viewer for Beads issue tracking",
+  "version": "1.0.0",
+  "author": "Stuart Rimel"
+}
