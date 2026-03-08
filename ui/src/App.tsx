@@ -39,7 +39,7 @@ function App() {
       {/* Main content */}
       <main className="flex flex-1 min-h-0">
         {/* Kanban — 65% */}
-        <div className="w-[65%] p-3 overflow-hidden">
+        <div className="w-[65%] pl-3 pt-3 pb-3 pr-0 overflow-hidden">
           <KanbanBoard
             issues={issues || []}
             ready={ready || []}
