@@ -1,3 +1,4 @@
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { KanbanColumn } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
 
@@ -13,31 +14,33 @@ export function KanbanBoard({ issues, ready, blocked, loading }: KanbanBoardProp
   const done = issues.filter(i => i.status === 'closed')
 
   return (
-    <div className="flex gap-3 h-full overflow-x-auto">
-      <KanbanColumn
-        title="Ready"
-        issues={ready}
-        accentColor="border-green-500"
-        loading={loading}
-      />
-      <KanbanColumn
-        title="In Progress"
-        issues={inProgress}
-        accentColor="border-blue-500"
-        loading={loading}
-      />
-      <KanbanColumn
-        title="Blocked"
-        issues={blocked}
-        accentColor="border-amber-500"
-        loading={loading}
-      />
-      <KanbanColumn
-        title="Done"
-        issues={done}
-        accentColor="border-muted-foreground"
-        loading={loading}
-      />
-    </div>
+    <ScrollArea className="h-full">
+      <div className="flex gap-3">
+        <KanbanColumn
+          title="Ready"
+          issues={ready}
+          accentColor="border-green-500"
+          loading={loading}
+        />
+        <KanbanColumn
+          title="In Progress"
+          issues={inProgress}
+          accentColor="border-blue-500"
+          loading={loading}
+        />
+        <KanbanColumn
+          title="Blocked"
+          issues={blocked}
+          accentColor="border-amber-500"
+          loading={loading}
+        />
+        <KanbanColumn
+          title="Done"
+          issues={done}
+          accentColor="border-muted-foreground"
+          loading={loading}
+        />
+      </div>
+    </ScrollArea>
   )
 }
