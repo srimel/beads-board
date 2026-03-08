@@ -74,6 +74,16 @@ async function handleRequest(req, res) {
   const parsed = url.parse(req.url, true);
   const pathname = parsed.pathname;
 
+  if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      });
+      res.end();
+      return;
+    }
+
   try {
     if (pathname === '/api/issues') {
       const issues = await execBd(['list']);
@@ -94,18 +104,19 @@ async function handleRequest(req, res) {
       jsonResponse(res, issue);
     } else if (pathname === '/api/git-log') {
       const branch = parsed.query.branch || '';
-      const limit = parseInt(parsed.query.limit || '50', 10);
+      const limit = Math.min(Math.max(parseInt(parsed.query.limit || '50', 10) || 50, 1), 500);
       if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
         errorResponse(res, 'Invalid branch name', 400);
         return;
       }
-      const format = '{"hash":"%h","message":"%s","author":"%an","date":"%ai"}';
+      const format = '%h%x00%s%x00%an%x00%ai';
       const args = ['log', `--format=${format}`, `-n`, `${limit}`];
       if (branch) args.splice(1, 0, branch);
       const stdout = await execGit(args);
       const commits = stdout.trim().split('\n').filter(Boolean).map(line => {
-        try { return JSON.parse(line); } catch { return null; }
-      }).filter(Boolean);
+        const [hash, message, author, date] = line.split('\0');
+        return { hash, message, author, date };
+      });
       jsonResponse(res, commits);
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
@@ -115,6 +126,12 @@ async function handleRequest(req, res) {
     } else {
       // Serve static files from dist/
       let filePath = path.join(DIST_DIR, pathname === '/' ? 'index.html' : pathname);
+      const resolved = path.resolve(filePath);
+      if (!resolved.startsWith(path.resolve(DIST_DIR))) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
       // SPA fallback: serve index.html for non-file paths
       if (!path.extname(filePath)) {
         filePath = path.join(DIST_DIR, 'index.html');
