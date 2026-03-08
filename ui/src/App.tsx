@@ -12,7 +12,7 @@ function App() {
   const apiError = !loading && issuesError ? issuesError : null
 
   return (
-    <div className="h-screen flex flex-col bg-background text-foreground">
+    <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
         <h1 className="text-lg font-bold tracking-tight">beads-board</h1>
@@ -49,7 +49,7 @@ function App() {
         </div>
 
         {/* Git Log — 35% */}
-        <div className="w-[35%]">
+        <div className="w-[35%] overflow-hidden">
           <GitLog />
         </div>
       </main>

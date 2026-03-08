@@ -14,7 +14,7 @@ export function GitLog() {
 
   return (
     <div className="flex flex-col h-full border-l border-border">
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-border shrink-0">
         <h2 className="text-sm font-semibold mb-2">Git Log</h2>
         {branchesLoading ? (
           <Skeleton className="h-9 w-full" />
@@ -26,7 +26,7 @@ export function GitLog() {
           />
         ) : null}
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden">
         {commitsLoading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 mx-3 mb-2 rounded" />
