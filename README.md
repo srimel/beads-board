@@ -1,6 +1,6 @@
 # beads-board
 
-A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), powered by Claude Code skills.
+A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), packaged as a Claude Code plugin.
 
 ![beads-board dashboard](docs/assets/dashboard-v1.png)
 
@@ -15,14 +15,18 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 
 ## Quick Start
 
-### As a Claude Code Skill
+### As a Claude Code Plugin
 
-Place the `beads-board-start` and `beads-board-stop` skills in your project's `.claude/skills/` directory, then:
+```bash
+# Install from local directory
+claude --plugin-dir /path/to/beads-board
 
+# Then in any project with .beads/
+/beads-board:start    # Start the dashboard server
+/beads-board:stop     # Stop it
 ```
-/beads-board-start    # Start the dashboard server
-/beads-board-stop     # Stop it
-```
+
+The plugin auto-detects `.beads/` in your project. If your project doesn't use Beads, it will let you know.
 
 ### Manual Usage
 

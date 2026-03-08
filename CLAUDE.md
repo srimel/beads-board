@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-beads-board is a Claude Code skill that provides a minimal kanban dashboard + git log viewer for [Beads](https://github.com/steveyegge/beads). It runs as a local HTTP server launched via the `/beads-board-start` slash command. Read-only in v1.
+beads-board is a Claude Code plugin that provides a minimal kanban dashboard + git log viewer for [Beads](https://github.com/steveyegge/beads). It runs as a local HTTP server launched via the `/beads-board:start` slash command. Read-only in v1.
 
 ## Architecture
 
 ```
-Claude Code  →  /beads-board-start  →  starts server  →  prints URL
+Claude Code  →  /beads-board:start  →  starts server  →  prints URL
                                             │
                                             ▼
                             Local HTTP Server (Node.js stdlib only)
@@ -19,7 +19,9 @@ Claude Code  →  /beads-board-start  →  starts server  →  prints URL
 
 - **`server/index.js`** — Node.js HTTP server using only stdlib (`node:http`, `node:child_process`). Zero npm runtime dependencies. Serves the built React app and exposes API endpoints that shell out to `bd` and `git` CLI commands.
 - **`ui/`** — React + TypeScript app built with Vite. Uses shadcn/ui components and Tailwind CSS. Builds to `server/dist/` (committed to repo so end users skip the build step).
-- **`.claude/skills/`** — Claude Code skills. `beads-board-start/SKILL.md` and `beads-board-stop/SKILL.md` define the `/beads-board-start` and `/beads-board-stop` slash commands.
+- **`.claude-plugin/plugin.json`** — Plugin manifest declaring skills and commands.
+- **`skills/`** — Plugin skills. `beads-board-start/SKILL.md` and `beads-board-stop/SKILL.md` define the `/beads-board:start` and `/beads-board:stop` slash commands.
+- **`commands/`** — Plugin commands (user-triggered slash commands).
 
 Data flows: UI polls API endpoints every 5s → server spawns `bd <cmd> --json` or `git` → returns parsed JSON.
 
@@ -39,7 +41,8 @@ cd ui && npm run dev
 # Start the backend server directly
 node server/index.js
 
-# Skills are loaded automatically when .claude/skills/ exists in the project
+# Test plugin locally
+claude --plugin-dir .
 ```
 
 ## Key Conventions

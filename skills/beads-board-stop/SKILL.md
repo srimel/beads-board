@@ -1,6 +1,6 @@
 ---
 name: stop
-description: Stop the beads-board dashboard server
+description: Stop the beads-board dashboard server. Use when the user wants to shut down the kanban dashboard.
 ---
 
 # Stop beads-board

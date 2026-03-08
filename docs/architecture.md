@@ -78,9 +78,14 @@ beads-board/
 │   │       ├── types.ts      # TypeScript interfaces
 │   │       └── utils.ts      # shadcn cn() helper
 │   └── components/ui/        # shadcn/ui components
-├── .claude/skills/           # Claude Code skills (slash commands)
+├── .claude-plugin/
+│   └── plugin.json           # Plugin manifest
+├── skills/                   # Plugin skills (model-invoked)
 │   ├── beads-board-start/SKILL.md
 │   └── beads-board-stop/SKILL.md
+├── commands/                 # Plugin commands (user-triggered)
+│   ├── start.md
+│   └── stop.md
 └── docs/
     ├── architecture.md
     ├── api.md

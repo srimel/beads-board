@@ -7,7 +7,15 @@ Start the beads-board server and print the dashboard URL.
 
 ## Steps
 
-1. Check if the server is already running:
+1. Check that the current project uses Beads:
+
+```bash
+ls .beads/ 2>/dev/null
+```
+
+If `.beads/` does not exist, tell the user this project doesn't use Beads issue tracking and stop.
+
+2. Check if the server is already running:
 
 ```bash
 cat .beads-board.pid 2>/dev/null
@@ -18,10 +26,8 @@ If the pidfile exists and the process is alive, just print the URL from the pidf
 2. If not running, start the server in the background:
 
 ```bash
-node <plugin-dir>/server/index.js <project-dir> &
+node ${CLAUDE_PLUGIN_ROOT}/server/index.js "$(pwd)" &
 ```
-
-Replace `<plugin-dir>` with the absolute path to this plugin's directory and `<project-dir>` with the user's current working directory (the project root containing `.beads/`).
 
 3. The server prints `beads-board server running at http://localhost:<port>` to stdout. Tell the user the URL.
 
