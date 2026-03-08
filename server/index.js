@@ -86,7 +86,7 @@ async function handleRequest(req, res) {
 
   try {
     if (pathname === '/api/issues') {
-      const issues = await execBd(['list']);
+      const issues = await execBd(['list', '--flat', '--status=all']);
       jsonResponse(res, issues);
     } else if (pathname === '/api/ready') {
       const ready = await execBd(['ready']);

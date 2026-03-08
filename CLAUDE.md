@@ -75,12 +75,12 @@ Each issue has: `id` (hash-based, e.g. `bd-a1b2`), `title`, `status`, `priority`
 
 | Bead Status | Column | Color Accent |
 |---|---|---|
+| not ready, in_progress, or closed | Backlog | Slate |
 | `open` (no blockers) | Ready | Green |
 | `in_progress` | In Progress | Blue |
-| `blocked` | Blocked | Amber/Red |
 | `closed` | Done | Muted/Gray |
 
-"Ready" uses `bd ready --json` (open issues with no unresolved blockers), not all open issues.
+"Ready" uses `bd ready --json` (open issues with no unresolved blockers). "Backlog" is everything else that isn't in_progress or closed (includes blocked, deferred, open-with-blockers).
 
 ## UI Layout
 

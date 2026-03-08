@@ -9,13 +9,27 @@ interface KanbanBoardProps {
   loading?: boolean
 }
 
-export function KanbanBoard({ issues, ready, blocked, loading }: KanbanBoardProps) {
+export function KanbanBoard({ issues, ready, blocked: _, loading }: KanbanBoardProps) {
+  const readyIds = new Set(ready.map(i => i.id))
   const inProgress = issues.filter(i => i.status === 'in_progress')
   const done = issues.filter(i => i.status === 'closed')
+
+  // Backlog: everything that isn't ready, in_progress, or closed
+  const backlog = issues.filter(i =>
+    i.status !== 'in_progress' &&
+    i.status !== 'closed' &&
+    !readyIds.has(i.id)
+  )
 
   return (
     <ScrollArea className="h-full">
       <div className="flex gap-3">
+        <KanbanColumn
+          title="Backlog"
+          issues={backlog}
+          accentColor="border-slate-500"
+          loading={loading}
+        />
         <KanbanColumn
           title="Ready"
           issues={ready}
@@ -26,12 +40,6 @@ export function KanbanBoard({ issues, ready, blocked, loading }: KanbanBoardProp
           title="In Progress"
           issues={inProgress}
           accentColor="border-blue-500"
-          loading={loading}
-        />
-        <KanbanColumn
-          title="Blocked"
-          issues={blocked}
-          accentColor="border-amber-500"
           loading={loading}
         />
         <KanbanColumn
