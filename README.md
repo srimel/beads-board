@@ -1,6 +1,6 @@
 # beads-board
 
-A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), packaged as a Claude Code plugin.
+A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), powered by Claude Code skills.
 
 ![beads-board dashboard](docs/assets/dashboard-v1.png)
 
