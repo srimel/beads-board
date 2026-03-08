@@ -1,9 +1,21 @@
 const http = require('node:http');
+const fs = require('node:fs');
 const { execFile } = require('node:child_process');
 const path = require('node:path');
 const url = require('node:url');
 
 const DEFAULT_PORT = 8377;
+const DIST_DIR = path.join(__dirname, 'dist');
+
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+};
 
 // Project directory: passed as CLI arg or cwd
 const PROJECT_DIR = process.argv[2] || process.cwd();
@@ -101,12 +113,71 @@ async function handleRequest(req, res) {
       const current = (await execGit(['rev-parse', '--abbrev-ref', 'HEAD'])).trim();
       jsonResponse(res, { branches, current });
     } else {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found');
+      // Serve static files from dist/
+      let filePath = path.join(DIST_DIR, pathname === '/' ? 'index.html' : pathname);
+      // SPA fallback: serve index.html for non-file paths
+      if (!path.extname(filePath)) {
+        filePath = path.join(DIST_DIR, 'index.html');
+      }
+      try {
+        const data = fs.readFileSync(filePath);
+        const ext = path.extname(filePath);
+        res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+        res.end(data);
+      } catch {
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('Not found');
+      }
     }
   } catch (err) {
     errorResponse(res, err.message);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Pidfile management
+// ---------------------------------------------------------------------------
+
+const PIDFILE = path.join(PROJECT_DIR, '.beads-board.pid');
+
+function writePidfile(port) {
+  fs.writeFileSync(PIDFILE, JSON.stringify({ pid: process.pid, port }));
+}
+
+function removePidfile() {
+  try { fs.unlinkSync(PIDFILE); } catch {}
+}
+
+function getRunningInstance() {
+  try {
+    const data = JSON.parse(fs.readFileSync(PIDFILE, 'utf8'));
+    // Check if process is still running
+    process.kill(data.pid, 0);
+    return data;
+  } catch {
+    removePidfile();
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Port detection
+// ---------------------------------------------------------------------------
+
+function findAvailablePort(startPort) {
+  return new Promise((resolve, reject) => {
+    const s = http.createServer();
+    s.listen(startPort, () => {
+      s.close(() => resolve(startPort));
+    });
+    s.on('error', () => {
+      if (startPort < DEFAULT_PORT + 10) {
+        resolve(findAvailablePort(startPort + 1));
+      } else {
+        reject(new Error('No available port found'));
+      }
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -115,7 +186,21 @@ async function handleRequest(req, res) {
 
 const server = http.createServer(handleRequest);
 
-const port = parseInt(process.env.PORT || DEFAULT_PORT, 10);
-server.listen(port, () => {
-  console.log(`beads-board server running at http://localhost:${port}`);
-});
+async function start() {
+  const existing = getRunningInstance();
+  if (existing) {
+    console.log(`beads-board already running at http://localhost:${existing.port}`);
+    process.exit(0);
+  }
+
+  const port = await findAvailablePort(parseInt(process.env.PORT || DEFAULT_PORT, 10));
+  server.listen(port, () => {
+    writePidfile(port);
+    console.log(`beads-board server running at http://localhost:${port}`);
+  });
+}
+
+process.on('SIGTERM', () => { removePidfile(); process.exit(0); });
+process.on('SIGINT', () => { removePidfile(); process.exit(0); });
+
+start();
