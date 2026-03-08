@@ -4,3 +4,4 @@
 *.db
 .beads-board.pid
 node_modules/
+docs/internal/
