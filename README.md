@@ -2,8 +2,6 @@
 
 A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), packaged as a Claude Code plugin.
 
-![beads-board dashboard](docs/assets/dashboard-v1.png)
-
 ## Features
 
 - **Kanban board** — Issues organized by status: Ready, In Progress, Blocked, Done
