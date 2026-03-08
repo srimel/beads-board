@@ -1,0 +1,10 @@
+{
+  "name": "beads-board",
+  "version": "1.0.0",
+  "description": "Kanban dashboard and git log viewer for Beads",
+  "scripts": {
+    "build": "cd ui && npm run build",
+    "start": "node server/index.js"
+  },
+  "license": "MIT"
+}
