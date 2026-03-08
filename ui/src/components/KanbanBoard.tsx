@@ -27,25 +27,25 @@ export function KanbanBoard({ issues, ready, blocked: _, loading }: KanbanBoardP
         <KanbanColumn
           title="Backlog"
           issues={backlog}
-          accentColor="border-slate-500"
+          accentColor="border-[#7d8590]"
           loading={loading}
         />
         <KanbanColumn
           title="Ready"
           issues={ready}
-          accentColor="border-green-500"
+          accentColor="border-[#238636]"
           loading={loading}
         />
         <KanbanColumn
           title="In Progress"
           issues={inProgress}
-          accentColor="border-blue-500"
+          accentColor="border-[#1f6feb]"
           loading={loading}
         />
         <KanbanColumn
           title="Done"
           issues={done}
-          accentColor="border-muted-foreground"
+          accentColor="border-[#484f58]"
           loading={loading}
         />
       </div>
