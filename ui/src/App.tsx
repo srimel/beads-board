@@ -1,5 +1,60 @@
+import { KanbanBoard } from '@/components/KanbanBoard'
+import { GitLog } from '@/components/GitLog'
+import { ThemeToggle } from '@/components/ThemeToggle'
+import { useIssues, useReady, useBlocked } from '@/hooks/useBeadsApi'
+
 function App() {
-  return <div>beads-board</div>
+  const { data: issues, loading: issuesLoading, lastUpdated, error: issuesError } = useIssues()
+  const { data: ready, loading: readyLoading } = useReady()
+  const { data: blocked, loading: blockedLoading } = useBlocked()
+
+  const loading = issuesLoading || readyLoading || blockedLoading
+  const apiError = !loading && issuesError ? issuesError : null
+
+  return (
+    <div className="h-screen flex flex-col bg-background text-foreground">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
+        <h1 className="text-lg font-bold tracking-tight">beads-board</h1>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+          {loading && (
+            <span className="text-xs text-muted-foreground animate-pulse">refreshing...</span>
+          )}
+          <ThemeToggle />
+        </div>
+      </header>
+
+      {/* Error banner */}
+      {apiError && (
+        <div className="bg-destructive/10 text-destructive px-4 py-2 text-sm border-b border-destructive/20">
+          {apiError} — showing last known data
+        </div>
+      )}
+
+      {/* Main content */}
+      <main className="flex flex-1 min-h-0">
+        {/* Kanban — 65% */}
+        <div className="w-[65%] p-3 overflow-hidden">
+          <KanbanBoard
+            issues={issues || []}
+            ready={ready || []}
+            blocked={blocked || []}
+            loading={loading}
+          />
+        </div>
+
+        {/* Git Log — 35% */}
+        <div className="w-[35%]">
+          <GitLog />
+        </div>
+      </main>
+    </div>
+  )
 }
 
 export default App
