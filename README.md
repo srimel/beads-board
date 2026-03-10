@@ -1,6 +1,6 @@
 # beads-board
 
-A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads), packaged as a Claude Code plugin.
+A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads). Works standalone as a CLI tool or as a Claude Code plugin.
 
 ## Features
 
@@ -12,6 +12,27 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 - **Zero runtime dependencies** — Server uses only Node.js stdlib
 
 ## Quick Start
+
+### Standalone CLI (works with any editor)
+
+```bash
+# Install globally
+npm install -g beads-board
+
+# Or run directly with npx
+npx beads-board
+```
+
+Then from any project that uses [Beads](https://github.com/steveyegge/beads):
+
+```bash
+cd /path/to/your/project
+beads-board                     # Start dashboard for current directory
+beads-board /path/to/project    # Or specify a project directory
+beads-board --port 9000         # Custom port
+```
+
+Open **http://localhost:8377** in your browser. The server auto-detects an available port and reuses an existing instance if one is already running.
 
 ### As a Claude Code Plugin
 
@@ -25,20 +46,6 @@ claude --plugin-dir /path/to/beads-board
 ```
 
 The plugin auto-detects `.beads/` in your project. If your project doesn't use Beads, it will let you know.
-
-### Manual Usage
-
-```bash
-# From any directory with a .beads/ project
-node server/index.js
-
-# Or specify a project directory
-node server/index.js /path/to/your/project
-```
-
-Then open **http://localhost:8377** in your browser.
-
-The server auto-detects an available port starting from 8377. If a server is already running, it prints the existing URL instead of starting a duplicate.
 
 ## How It Works
 

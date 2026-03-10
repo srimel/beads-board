@@ -2,6 +2,9 @@
   "name": "beads-board",
   "version": "1.0.0",
   "description": "Kanban dashboard and git log viewer for Beads",
+  "bin": {
+    "beads-board": "bin/beads-board.js"
+  },
   "scripts": {
     "build": "cd ui && npm run build",
     "start": "node server/index.js"
