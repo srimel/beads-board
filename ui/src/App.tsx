@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
@@ -15,6 +15,41 @@ function App() {
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+
+  const mainRef = useRef<HTMLDivElement>(null)
+  const [splitPercent, setSplitPercent] = useState(() => {
+    const saved = localStorage.getItem('beads-board-split')
+    return saved ? Number(saved) : 65
+  })
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const main = mainRef.current
+    if (!main) return
+
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = main.getBoundingClientRect()
+      const pct = ((e.clientX - rect.left) / rect.width) * 100
+      const clamped = Math.min(85, Math.max(30, pct))
+      setSplitPercent(clamped)
+    }
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      setSplitPercent(prev => {
+        localStorage.setItem('beads-board-split', String(prev))
+        return prev
+      })
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }, [])
 
   useEffect(() => {
     document.title = projectName
@@ -46,9 +81,9 @@ function App() {
       )}
 
       {/* Main content */}
-      <main className="flex flex-1 min-h-0">
-        {/* Kanban — 65% */}
-        <div className="w-[65%] pl-3 pt-3 pb-3 pr-0 overflow-hidden">
+      <main ref={mainRef} className="flex flex-1 min-h-0">
+        {/* Kanban */}
+        <div style={{ width: `${splitPercent}%` }} className="pl-3 pt-3 pb-3 pr-0 overflow-hidden">
           <KanbanBoard
             issues={issues || []}
             ready={ready || []}
@@ -58,8 +93,14 @@ function App() {
           />
         </div>
 
-        {/* Git Log — 35% */}
-        <div className="w-[35%] overflow-hidden">
+        {/* Draggable splitter */}
+        <div
+          className="w-1 cursor-col-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors"
+          onMouseDown={handleMouseDown}
+        />
+
+        {/* Git Log */}
+        <div style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden">
           <GitLog />
         </div>
       </main>

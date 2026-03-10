@@ -120,13 +120,13 @@ async function handleRequest(req, res) {
         errorResponse(res, 'Invalid branch name', 400);
         return;
       }
-      const format = '%h%x00%s%x00%an%x00%ai';
+      const format = '%h%x00%s%x00%b%x00%an%x00%ai%x1e';
       const args = ['log', `--format=${format}`, `-n`, `${limit}`];
       if (branch) args.splice(1, 0, branch);
       const stdout = await execGit(args);
-      const commits = stdout.trim().split('\n').filter(Boolean).map(line => {
-        const [hash, message, author, date] = line.split('\0');
-        return { hash, message, author, date };
+      const commits = stdout.split('\x1e').filter(s => s.trim()).map(record => {
+        const [hash, message, body, author, date] = record.split('\0');
+        return { hash, message, body: body?.trim() || '', author, date };
       });
       jsonResponse(res, commits);
     } else if (pathname === '/api/project') {

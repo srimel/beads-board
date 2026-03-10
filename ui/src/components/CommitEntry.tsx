@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import type { GitCommit } from '@/lib/types'
 
 const BEAD_ID_REGEX = /\b([\w]+-[a-z0-9]{4,8})\b/g
@@ -36,7 +37,21 @@ export function CommitEntry({ commit }: { commit: GitCommit }) {
           {formatRelativeTime(commit.date)}
         </span>
       </div>
-      <p className="text-sm leading-tight">{renderMessage(commit.message)}</p>
+      {commit.body ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p className="text-sm leading-tight truncate cursor-help">{renderMessage(commit.message)}</p>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-sm whitespace-pre-wrap text-xs">
+              <p className="font-semibold mb-1">{commit.message}</p>
+              <p>{commit.body}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        <p className="text-sm leading-tight">{renderMessage(commit.message)}</p>
+      )}
       <span className="text-xs text-muted-foreground">{commit.author}</span>
     </div>
   )

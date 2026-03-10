@@ -15,6 +15,7 @@ export interface BeadIssue {
 export interface GitCommit {
   hash: string
   message: string
+  body: string
   author: string
   date: string
 }
