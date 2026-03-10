@@ -48,7 +48,7 @@ interface CommitEntryProps {
 
 export function CommitEntry({ commit, onBeadClick }: CommitEntryProps) {
   return (
-    <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0 animate-bead-enter">
+    <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0 animate-bead-enter min-w-0">
       <div className="flex items-center gap-2">
         <code className="text-xs text-muted-foreground shrink-0">{commit.hash}</code>
         <span className="text-xs text-muted-foreground ml-auto shrink-0">
@@ -59,7 +59,7 @@ export function CommitEntry({ commit, onBeadClick }: CommitEntryProps) {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <p className="text-sm leading-tight truncate cursor-help">{renderMessage(commit.message, onBeadClick)}</p>
+              <p className="text-sm leading-tight break-words cursor-help">{renderMessage(commit.message, onBeadClick)}</p>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm whitespace-pre-wrap text-xs">
               <p className="font-semibold mb-1">{commit.message}</p>
@@ -68,7 +68,7 @@ export function CommitEntry({ commit, onBeadClick }: CommitEntryProps) {
           </Tooltip>
         </TooltipProvider>
       ) : (
-        <p className="text-sm leading-tight">{renderMessage(commit.message, onBeadClick)}</p>
+        <p className="text-sm leading-tight break-words">{renderMessage(commit.message, onBeadClick)}</p>
       )}
       <span className="text-xs text-muted-foreground">{commit.author}</span>
     </div>
