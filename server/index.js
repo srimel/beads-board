@@ -26,7 +26,7 @@ const PROJECT_DIR = process.argv[2] || process.cwd();
 
 function execCmd(cmd, args, cwd) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd, timeout: 10000 }, (err, stdout, stderr) => {
+    execFile(cmd, args, { cwd, timeout: 10000, windowsHide: true }, (err, stdout, stderr) => {
       if (err) {
         reject(new Error(`${cmd} ${args.join(' ')} failed: ${stderr || err.message}`));
         return;

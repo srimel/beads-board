@@ -161,6 +161,7 @@ if (foreground) {
     detached: true,
     stdio: 'ignore',
     env,
+    windowsHide: true,
   });
   child.unref();
 
