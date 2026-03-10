@@ -3,8 +3,9 @@ import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { IssueDetailPanel } from '@/components/IssueDetailPanel'
+import { DependencyGraph } from '@/components/DependencyGraph'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
-import { PanelRightOpen } from 'lucide-react'
+import { PanelRightOpen, Network } from 'lucide-react'
 
 export interface CardSourceRect {
   top: number
@@ -26,6 +27,7 @@ function App() {
   const apiError = !loading && issuesError ? issuesError : null
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [cardSourceRect, setCardSourceRect] = useState<CardSourceRect | null>(null)
+  const [showDag, setShowDag] = useState(false)
 
   const handleIssueClick = useCallback((id: string, rect?: CardSourceRect) => {
     setCardSourceRect(rect || null)
@@ -139,6 +141,17 @@ function App() {
           {loading && (
             <span className="text-xs text-muted-foreground animate-pulse">refreshing...</span>
           )}
+          <button
+            onClick={() => setShowDag(prev => !prev)}
+            className={`rounded-md p-2 transition-colors ${
+              showDag
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+            title={showDag ? 'Show kanban board' : 'Show dependency graph'}
+          >
+            <Network className="h-4 w-4" />
+          </button>
           <ThemeToggle />
         </div>
       </header>
@@ -151,51 +164,63 @@ function App() {
       )}
 
       {/* Main content */}
-      <main ref={mainRef} className="flex flex-1 min-h-0">
-        {/* Kanban */}
-        <div
-          ref={kanbanRef}
-          style={gitLogCollapsed
-            ? { width: `calc(100% - ${COLLAPSED_WIDTH_PX}px - 4px)` }
-            : { width: `${splitPercent}%` }
-          }
-          className="pl-3 pt-3 pb-3 pr-0 overflow-hidden transition-[width] duration-200"
-        >
-          <KanbanBoard
+      {showDag ? (
+        <main className="flex-1 min-h-0">
+          <DependencyGraph
             issues={issues || []}
-            ready={ready || []}
-            blocked={blocked || []}
-            loading={loading}
-            onIssueClick={handleIssueClick}
+            onNodeClick={(id) => {
+              setCardSourceRect(null)
+              setSelectedIssueId(id)
+            }}
           />
-        </div>
-
-        {/* Draggable splitter */}
-        <div
-          className="w-1 cursor-col-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors"
-          onMouseDown={handleMouseDown}
-        />
-
-        {/* Git Log */}
-        {gitLogCollapsed ? (
+        </main>
+      ) : (
+        <main ref={mainRef} className="flex flex-1 min-h-0">
+          {/* Kanban */}
           <div
-            style={{ width: `${COLLAPSED_WIDTH_PX}px` }}
-            className="flex flex-col items-center border-l border-border shrink-0 transition-[width] duration-200"
+            ref={kanbanRef}
+            style={gitLogCollapsed
+              ? { width: `calc(100% - ${COLLAPSED_WIDTH_PX}px - 4px)` }
+              : { width: `${splitPercent}%` }
+            }
+            className="pl-3 pt-3 pb-3 pr-0 overflow-hidden transition-[width] duration-200"
           >
-            <button
-              onClick={toggleGitLogCollapsed}
-              className="mt-3 p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-              title="Expand git log"
+            <KanbanBoard
+              issues={issues || []}
+              ready={ready || []}
+              blocked={blocked || []}
+              loading={loading}
+              onIssueClick={handleIssueClick}
+            />
+          </div>
+
+          {/* Draggable splitter */}
+          <div
+            className="w-1 cursor-col-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors"
+            onMouseDown={handleMouseDown}
+          />
+
+          {/* Git Log */}
+          {gitLogCollapsed ? (
+            <div
+              style={{ width: `${COLLAPSED_WIDTH_PX}px` }}
+              className="flex flex-col items-center border-l border-border shrink-0 transition-[width] duration-200"
             >
-              <PanelRightOpen className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <div ref={gitLogRef} style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden transition-[width] duration-200">
-            <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} />
-          </div>
-        )}
-      </main>
+              <button
+                onClick={toggleGitLogCollapsed}
+                className="mt-3 p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                title="Expand git log"
+              >
+                <PanelRightOpen className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div ref={gitLogRef} style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden transition-[width] duration-200">
+              <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} />
+            </div>
+          )}
+        </main>
+      )}
       <IssueDetailPanel
         issueId={selectedIssueId}
         open={selectedIssueId !== null}
