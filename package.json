@@ -7,7 +7,10 @@
   },
   "scripts": {
     "build": "cd ui && npm run build",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "publish:patch": "npm version patch && git push && git push --tags && npm publish --access public",
+    "publish:minor": "npm version minor && git push && git push --tags && npm publish --access public",
+    "publish:major": "npm version major && git push && git push --tags && npm publish --access public"
   },
   "license": "MIT"
 }
