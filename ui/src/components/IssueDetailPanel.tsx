@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XIcon } from 'lucide-react'
+import { XIcon, ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -45,14 +45,19 @@ function formatDate(dateStr?: string) {
   })
 }
 
-function DepItem({ dep }: { dep: { id: string; title: string; status: string; dependency_type?: string } }) {
+function DepItem({ dep, onNavigate }: { dep: { id: string; title: string; status: string; dependency_type?: string }; onNavigate?: (id: string) => void }) {
   const icon = dep.status === 'closed' ? '\u2713' : dep.status === 'in_progress' ? '\u25D0' : '\u25CB'
   return (
     <div className="flex items-start gap-2 py-1">
       <span className="text-xs leading-4 text-foreground">{icon}</span>
       <div className="min-w-0">
         <div className="flex items-center gap-1">
-          <code className="text-xs leading-4 text-muted-foreground">{dep.id}</code>
+          <code
+            className="text-xs leading-4 text-muted-foreground cursor-pointer hover:underline hover:text-foreground transition-colors"
+            onClick={() => onNavigate?.(dep.id)}
+          >
+            {dep.id}
+          </code>
           {dep.dependency_type && (
             <span className="text-xs leading-4 text-muted-foreground">({dep.dependency_type})</span>
           )}
@@ -102,11 +107,42 @@ export function IssueDetailPanel({
 }) {
   const [detail, setDetail] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(false)
+  const [navStack, setNavStack] = useState<string[]>([])
+  const [currentId, setCurrentId] = useState<string | null>(issueId)
+
+  // Sync currentId when issueId prop changes (new modal open)
+  useEffect(() => {
+    setCurrentId(issueId)
+    setNavStack([])
+  }, [issueId])
+
+  // Reset stack when modal closes
+  useEffect(() => {
+    if (!open) {
+      setNavStack([])
+    }
+  }, [open])
+
+  const navigateTo = useCallback((targetId: string) => {
+    if (currentId) {
+      setNavStack(prev => [...prev, currentId])
+    }
+    setCurrentId(targetId)
+  }, [currentId])
+
+  const navigateBack = useCallback(() => {
+    setNavStack(prev => {
+      const next = [...prev]
+      const previousId = next.pop()
+      if (previousId) setCurrentId(previousId)
+      return next
+    })
+  }, [])
 
   useEffect(() => {
-    if (!issueId || !open) return
+    if (!currentId || !open) return
     setLoading(true)
-    fetch(`/api/issue/${issueId}`)
+    fetch(`/api/issue/${currentId}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
@@ -117,7 +153,7 @@ export function IssueDetailPanel({
       })
       .catch(() => setDetail(null))
       .finally(() => setLoading(false))
-  }, [issueId, open])
+  }, [currentId, open])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
@@ -170,6 +206,17 @@ export function IssueDetailPanel({
             }}
             transition={modalSpring}
           >
+            {/* Back button */}
+            {navStack.length > 0 && (
+              <button
+                onClick={navigateBack}
+                className="absolute top-4 left-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-hidden"
+              >
+                <ArrowLeft className="size-4" />
+                <span className="sr-only">Back</span>
+              </button>
+            )}
+
             {/* Close button */}
             <button
               onClick={onClose}
@@ -223,17 +270,29 @@ export function IssueDetailPanel({
                     </div>
                   )}
 
+                  {detail.parent && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Parent</h3>
+                      <code
+                        className="text-xs text-muted-foreground cursor-pointer hover:underline hover:text-foreground transition-colors"
+                        onClick={() => navigateTo(detail.parent!)}
+                      >
+                        {detail.parent}
+                      </code>
+                    </div>
+                  )}
+
                   {detail.dependencies && detail.dependencies.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Dependencies</h3>
-                      {detail.dependencies.map(dep => <DepItem key={dep.id} dep={dep} />)}
+                      {detail.dependencies.map(dep => <DepItem key={dep.id} dep={dep} onNavigate={navigateTo} />)}
                     </div>
                   )}
 
                   {detail.dependents && detail.dependents.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Blocks</h3>
-                      {detail.dependents.map(dep => <DepItem key={dep.id} dep={dep} />)}
+                      {detail.dependents.map(dep => <DepItem key={dep.id} dep={dep} onNavigate={navigateTo} />)}
                     </div>
                   )}
 
