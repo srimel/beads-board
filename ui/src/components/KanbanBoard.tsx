@@ -7,9 +7,10 @@ interface KanbanBoardProps {
   ready: BeadIssue[]
   blocked: BeadIssue[]
   loading?: boolean
+  onIssueClick?: (id: string) => void
 }
 
-export function KanbanBoard({ issues, ready, blocked: _, loading }: KanbanBoardProps) {
+export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }: KanbanBoardProps) {
   const readyIds = new Set(ready.map(i => i.id))
   const inProgress = issues.filter(i => i.status === 'in_progress')
   const done = issues.filter(i => i.status === 'closed')
@@ -29,24 +30,28 @@ export function KanbanBoard({ issues, ready, blocked: _, loading }: KanbanBoardP
           issues={backlog}
           accentColor="border-[#7d8590]"
           loading={loading}
+          onIssueClick={onIssueClick}
         />
         <KanbanColumn
           title="Ready"
           issues={ready}
           accentColor="border-[#238636]"
           loading={loading}
+          onIssueClick={onIssueClick}
         />
         <KanbanColumn
           title="In Progress"
           issues={inProgress}
           accentColor="border-[#1f6feb]"
           loading={loading}
+          onIssueClick={onIssueClick}
         />
         <KanbanColumn
           title="Done"
           issues={done}
           accentColor="border-[#484f58]"
           loading={loading}
+          onIssueClick={onIssueClick}
         />
       </div>
     </ScrollArea>

@@ -7,9 +7,10 @@ interface KanbanColumnProps {
   issues: BeadIssue[]
   accentColor: string
   loading?: boolean
+  onIssueClick?: (id: string) => void
 }
 
-export function KanbanColumn({ title, issues, accentColor, loading }: KanbanColumnProps) {
+export function KanbanColumn({ title, issues, accentColor, loading, onIssueClick }: KanbanColumnProps) {
   return (
     <div className="min-w-0 flex-1">
       <div className={`flex items-center gap-2 px-3 py-2 border-b-2 sticky top-0 z-10 bg-background ${accentColor}`}>
@@ -24,7 +25,7 @@ export function KanbanColumn({ title, issues, accentColor, loading }: KanbanColu
         ) : issues.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">No issues</p>
         ) : (
-          issues.map(issue => <BeadCard key={issue.id} issue={issue} />)
+          issues.map(issue => <BeadCard key={issue.id} issue={issue} onClick={onIssueClick} />)
         )}
       </div>
     </div>

@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { IssueDetailPanel } from '@/components/IssueDetailPanel'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const projectName = project?.name || 'beads-board'
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
 
   useEffect(() => {
     document.title = projectName
@@ -52,6 +54,7 @@ function App() {
             ready={ready || []}
             blocked={blocked || []}
             loading={loading}
+            onIssueClick={setSelectedIssueId}
           />
         </div>
 
@@ -60,6 +63,11 @@ function App() {
           <GitLog />
         </div>
       </main>
+      <IssueDetailPanel
+        issueId={selectedIssueId}
+        open={selectedIssueId !== null}
+        onClose={() => setSelectedIssueId(null)}
+      />
     </div>
   )
 }
