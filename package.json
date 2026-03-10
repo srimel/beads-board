@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Kanban dashboard and git log viewer for Beads",
   "bin": {
-    "beads-board": "bin/beads-board.js"
+    "bdui": "bin/beads-board.js"
   },
   "scripts": {
     "build": "cd ui && npm run build",

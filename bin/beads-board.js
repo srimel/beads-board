@@ -7,10 +7,10 @@ const args = process.argv.slice(2);
 
 // --help
 if (args.includes('--help') || args.includes('-h')) {
-  console.log(`beads-board — Kanban dashboard and git log viewer for Beads
+  console.log(`bdui — Kanban dashboard and git log viewer for Beads
 
 Usage:
-  beads-board [project-dir] [options]
+  bdui [project-dir] [options]
 
 Options:
   --port <port>   Port to listen on (default: 8377)
@@ -18,9 +18,9 @@ Options:
   --version, -v   Show version number
 
 Examples:
-  beads-board                     # Use current directory
-  beads-board /path/to/project    # Specify project directory
-  beads-board --port 9000         # Custom port`);
+  bdui                     # Use current directory
+  bdui /path/to/project    # Specify project directory
+  bdui --port 9000         # Custom port`);
   process.exit(0);
 }
 

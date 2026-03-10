@@ -19,7 +19,7 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 # Install globally
 npm install -g @citadel-labs/beads-ui
 
-# Or run directly with npx
+# Or run directly with npx (installs temporarily)
 npx @citadel-labs/beads-ui
 ```
 
@@ -27,9 +27,9 @@ Then from any project that uses [Beads](https://github.com/steveyegge/beads):
 
 ```bash
 cd /path/to/your/project
-beads-board                     # Start dashboard for current directory
-beads-board /path/to/project    # Or specify a project directory
-beads-board --port 9000         # Custom port
+bdui                     # Start dashboard for current directory
+bdui /path/to/project    # Or specify a project directory
+bdui --port 9000         # Custom port
 ```
 
 Open **http://localhost:8377** in your browser. The server auto-detects an available port and reuses an existing instance if one is already running.
