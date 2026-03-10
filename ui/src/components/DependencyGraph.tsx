@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import * as dagre from '@dagrejs/dagre'
-import type { BeadIssue } from '@/lib/types'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import dagre from '@dagrejs/dagre'
+import type { BeadIssue, DependencyEdge } from '@/lib/types'
 
 interface DependencyGraphProps {
   issues: BeadIssue[]
@@ -25,11 +26,19 @@ const STATUS_COLORS_LIGHT: Record<string, { bg: string; border: string; text: st
   deferred: { bg: '#fff8c5', border: '#9e6a03', text: '#6f4e00' },
 }
 
+const PRIORITY_COLORS: Record<number, string> = {
+  0: '#f85149',
+  1: '#e3b341',
+  2: '#58a6ff',
+  3: '#7d8590',
+  4: '#484f58',
+}
+
 const DEFAULT_COLOR = { bg: '#1c1c1c', border: '#484f58', text: '#8b949e' }
 const DEFAULT_COLOR_LIGHT = { bg: '#f6f8fa', border: '#d0d7de', text: '#57606a' }
 
-const NODE_WIDTH = 180
-const NODE_HEIGHT = 56
+const NODE_WIDTH = 200
+const NODE_HEIGHT = 62
 const PADDING = 40
 
 interface LayoutNode {
@@ -42,7 +51,19 @@ interface LayoutNode {
 interface LayoutEdge {
   from: string
   to: string
+  type: 'blocks' | 'parent-child' | string
   points: Array<{ x: number; y: number }>
+}
+
+/**
+ * Normalize a dependency entry to { depends_on_id, type }.
+ * Supports both string[] and DependencyEdge[] formats.
+ */
+function normalizeDep(dep: string | DependencyEdge): { depends_on_id: string; type: string } {
+  if (typeof dep === 'string') {
+    return { depends_on_id: dep, type: 'blocks' }
+  }
+  return { depends_on_id: dep.depends_on_id, type: dep.type || 'blocks' }
 }
 
 function computeLayout(issues: BeadIssue[]): { nodes: LayoutNode[]; edges: LayoutEdge[]; width: number; height: number } {
@@ -62,13 +83,30 @@ function computeLayout(issues: BeadIssue[]): { nodes: LayoutNode[]; edges: Layou
     g.setNode(issue.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
   }
 
+  // Track edge types for rendering
+  const edgeTypes = new Map<string, string>()
+
+  // Add dependency edges
   for (const issue of issues) {
     if (issue.dependencies) {
-      for (const dep of issue.dependencies) {
-        if (issueMap.has(dep)) {
-          // Edge from dependent -> dependency (issue depends on dep)
-          g.setEdge(issue.id, dep)
+      for (const rawDep of issue.dependencies) {
+        const dep = normalizeDep(rawDep)
+        if (issueMap.has(dep.depends_on_id)) {
+          const edgeKey = `${issue.id}|${dep.depends_on_id}`
+          edgeTypes.set(edgeKey, dep.type)
+          g.setEdge(issue.id, dep.depends_on_id)
         }
+      }
+    }
+  }
+
+  // Add parent-child edges
+  for (const issue of issues) {
+    if (issue.parent && issueMap.has(issue.parent)) {
+      const edgeKey = `${issue.parent}|${issue.id}`
+      if (!edgeTypes.has(edgeKey)) {
+        edgeTypes.set(edgeKey, 'parent-child')
+        g.setEdge(issue.parent, issue.id)
       }
     }
   }
@@ -89,7 +127,13 @@ function computeLayout(issues: BeadIssue[]): { nodes: LayoutNode[]; edges: Layou
   for (const e of g.edges()) {
     const edgeData = g.edge(e)
     if (edgeData && edgeData.points) {
-      edges.push({ from: e.v, to: e.w, points: edgeData.points })
+      const edgeKey = `${e.v}|${e.w}`
+      edges.push({
+        from: e.v,
+        to: e.w,
+        type: edgeTypes.get(edgeKey) || 'blocks',
+        points: edgeData.points,
+      })
     }
   }
 
@@ -105,9 +149,10 @@ function getTransitiveDeps(issueId: string, issueMap: Map<string, BeadIssue>, vi
   visited.add(issueId)
   const issue = issueMap.get(issueId)
   if (issue?.dependencies) {
-    for (const dep of issue.dependencies) {
-      if (issueMap.has(dep)) {
-        getTransitiveDeps(dep, issueMap, visited)
+    for (const rawDep of issue.dependencies) {
+      const dep = normalizeDep(rawDep)
+      if (issueMap.has(dep.depends_on_id)) {
+        getTransitiveDeps(dep.depends_on_id, issueMap, visited)
       }
     }
   }
@@ -132,11 +177,8 @@ function buildSmoothPath(points: Array<{ x: number; y: number }>): string {
 
   let d = `M ${points[0].x} ${points[0].y}`
   for (let i = 1; i < points.length - 1; i++) {
-    const prev = points[i - 1]
     const curr = points[i]
     const next = points[i + 1]
-    const cpx1 = (prev.x + curr.x) / 2
-    const cpy1 = (prev.y + curr.y) / 2
     const cpx2 = (curr.x + next.x) / 2
     const cpy2 = (curr.y + next.y) / 2
     if (i === 1) {
@@ -144,8 +186,6 @@ function buildSmoothPath(points: Array<{ x: number; y: number }>): string {
     } else {
       d += ` T ${cpx2} ${cpy2}`
     }
-    // Unused but kept for potential future use
-    void cpx1; void cpy1
   }
   const last = points[points.length - 1]
   d += ` L ${last.x} ${last.y}`
@@ -182,11 +222,18 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     const m = new Map<string, string[]>()
     for (const issue of issues) {
       if (issue.dependencies) {
-        for (const dep of issue.dependencies) {
-          const list = m.get(dep) || []
+        for (const rawDep of issue.dependencies) {
+          const dep = normalizeDep(rawDep)
+          const list = m.get(dep.depends_on_id) || []
           list.push(issue.id)
-          m.set(dep, list)
+          m.set(dep.depends_on_id, list)
         }
+      }
+      // Also track parent-child as dependents
+      if (issue.parent) {
+        const list = m.get(issue.parent) || []
+        list.push(issue.id)
+        m.set(issue.parent, list)
       }
     }
     return m
@@ -219,7 +266,6 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     const delta = e.deltaY > 0 ? 0.9 : 1.1
     setTransform(prev => {
       const newScale = Math.min(3, Math.max(0.1, prev.scale * delta))
-      // Zoom toward mouse position
       const rect = containerRef.current?.getBoundingClientRect()
       if (!rect) return { ...prev, scale: newScale }
       const mx = e.clientX - rect.left
@@ -234,7 +280,6 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
-    // Only pan when clicking on the background SVG (not nodes)
     if ((e.target as SVGElement).closest('.dag-node')) return
     setIsPanning(true)
     panStart.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y }
@@ -288,7 +333,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
         height="100%"
         style={{ position: 'absolute', top: 0, left: 0 }}
       >
-        {/* Grid pattern */}
+        {/* Definitions: grid, arrows, glow */}
         <defs>
           <pattern id="dag-grid" width="20" height="20" patternUnits="userSpaceOnUse"
             patternTransform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
@@ -347,6 +392,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
             const isDimmed = highlightedIds !== null && !isHighlighted
             const color = isDimmed ? edgeDimColor : isHighlighted ? edgeHighlightColor : edgeDefaultColor
             const markerId = isDimmed ? 'dag-arrow-dim' : isHighlighted ? 'dag-arrow-highlight' : 'dag-arrow'
+            const isParentChild = edge.type === 'parent-child'
 
             return (
               <path
@@ -355,6 +401,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
                 fill="none"
                 stroke={color}
                 strokeWidth={isHighlighted ? 2 : 1.5}
+                strokeDasharray={isParentChild ? '6 3' : undefined}
                 markerEnd={`url(#${markerId})`}
                 style={{ transition: 'stroke 0.3s, stroke-width 0.3s, opacity 0.3s' }}
               />
@@ -369,6 +416,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
             const isHighlighted = highlightedIds ? highlightedIds.has(node.id) : false
             const isDimmed = highlightedIds !== null && !isHighlighted
             const opacity = isDimmed ? 0.2 : 1
+            const priorityColor = PRIORITY_COLORS[node.issue.priority] || PRIORITY_COLORS[3]
 
             return (
               <g
@@ -403,6 +451,26 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
                   rx={2}
                   fill={colors.border}
                 />
+                {/* Priority indicator dot */}
+                <circle
+                  cx={NODE_WIDTH - 12}
+                  cy={NODE_HEIGHT / 2}
+                  r={4}
+                  fill={priorityColor}
+                  opacity={0.8}
+                />
+                {/* Priority label */}
+                <text
+                  x={NODE_WIDTH - 12}
+                  y={NODE_HEIGHT / 2 + 3.5}
+                  fill={isDark ? '#0d1117' : '#ffffff'}
+                  fontSize={7}
+                  fontFamily="system-ui, sans-serif"
+                  fontWeight={700}
+                  textAnchor="middle"
+                >
+                  {node.issue.priority}
+                </text>
                 {/* Bead ID */}
                 <text
                   x={14}
@@ -422,11 +490,11 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
                   fontSize={11}
                   fontFamily="system-ui, -apple-system, sans-serif"
                 >
-                  {truncateText(node.issue.title, 22)}
+                  {truncateText(node.issue.title, 24)}
                 </text>
                 {/* Status pill */}
                 <rect
-                  x={NODE_WIDTH - 68}
+                  x={NODE_WIDTH - 80}
                   y={6}
                   width={56}
                   height={18}
@@ -435,7 +503,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
                   opacity={0.3}
                 />
                 <text
-                  x={NODE_WIDTH - 40}
+                  x={NODE_WIDTH - 52}
                   y={18}
                   fill={colors.text}
                   fontSize={9}
@@ -470,7 +538,18 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
           </div>
         ))}
         <div className="border-t pt-1.5 mt-1.5" style={{ borderColor: isDark ? 'rgba(48,54,61,0.6)' : 'rgba(208,215,222,0.6)' }}>
-          <span className="text-muted-foreground">Click node to highlight dependencies</span>
+          <div className="font-semibold text-foreground mb-1">Edges</div>
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={edgeDefaultColor} strokeWidth="1.5" /></svg>
+            <span className="text-muted-foreground">blocks</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg width="24" height="8"><line x1="0" y1="4" x2="24" y2="4" stroke={edgeDefaultColor} strokeWidth="1.5" strokeDasharray="4 2" /></svg>
+            <span className="text-muted-foreground">parent-child</span>
+          </div>
+        </div>
+        <div className="border-t pt-1.5 mt-1.5" style={{ borderColor: isDark ? 'rgba(48,54,61,0.6)' : 'rgba(208,215,222,0.6)' }}>
+          <span className="text-muted-foreground">Click node to highlight deps</span>
         </div>
       </div>
 
