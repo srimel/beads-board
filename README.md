@@ -1,6 +1,6 @@
 # beads-board
 
-A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads). Works standalone as a CLI tool or as a Claude Code plugin.
+A minimal kanban dashboard and git log viewer for [Beads](https://github.com/steveyegge/beads). Runs as a standalone CLI tool.
 
 ## Features
 
@@ -12,8 +12,6 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 - **Zero runtime dependencies** — Server uses only Node.js stdlib
 
 ## Quick Start
-
-### Standalone CLI (works with any editor)
 
 ```bash
 # Install globally
@@ -34,20 +32,13 @@ bdui status              # Check if dashboard is running
 bdui stop                # Stop the dashboard
 ```
 
-The server starts in the background and returns control to your terminal. Open the printed URL (default **http://localhost:8377**) in your browser. Port auto-increments if taken.
-
-### As a Claude Code Plugin
+Or start the server directly:
 
 ```bash
-# Install from local directory
-claude --plugin-dir /path/to/beads-board
-
-# Then in any project with .beads/
-/beads-board:start    # Start the dashboard server
-/beads-board:stop     # Stop it
+node server/index.js
 ```
 
-The plugin auto-detects `.beads/` in your project. If your project doesn't use Beads, it will let you know.
+The server starts in the background and returns control to your terminal. Open the printed URL (default **http://localhost:8377**) in your browser. Port auto-increments if taken.
 
 ## How It Works
 
@@ -62,7 +53,7 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — How the server, UI, and plugin fit together
+- [Architecture](docs/architecture.md) — How the server and UI fit together
 - [API Reference](docs/api.md) — All API endpoints with examples
 - [Contributing](docs/contributing.md) — How to set up a dev environment and make changes
 

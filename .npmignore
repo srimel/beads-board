@@ -3,9 +3,6 @@
 ui/
 docs/
 .beads/
-.claude-plugin/
 .playwright-mcp/
-skills/
-commands/
 CLAUDE.md
 AGENTS.md
