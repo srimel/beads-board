@@ -23,7 +23,7 @@ export function BeadCard({ issue }: { issue: BeadIssue }) {
   const depCount = issue.dependencies?.length || 0
 
   return (
-    <Card className="mb-2 p-2.5 gap-1 border-[#21262d]">
+    <Card className="mb-2 p-2.5 gap-1 border-border animate-bead-enter">
       <div className="flex items-center justify-between gap-2">
         <code className="text-xs text-muted-foreground">{issue.id}</code>
         <Badge className={PRIORITY_STYLES[issue.priority] || PRIORITY_STYLES[4]}>

@@ -51,6 +51,17 @@ async function execGit(args) {
 }
 
 // ---------------------------------------------------------------------------
+// Issue normalization — bd CLI outputs `issue_type`, UI expects `type`
+// ---------------------------------------------------------------------------
+
+function normalizeIssue(issue) {
+  if (issue.issue_type && !issue.type) {
+    issue.type = issue.issue_type;
+  }
+  return issue;
+}
+
+// ---------------------------------------------------------------------------
 // JSON response helpers
 // ---------------------------------------------------------------------------
 
@@ -87,13 +98,13 @@ async function handleRequest(req, res) {
   try {
     if (pathname === '/api/issues') {
       const issues = await execBd(['list', '--flat', '--status=all']);
-      jsonResponse(res, issues);
+      jsonResponse(res, Array.isArray(issues) ? issues.map(normalizeIssue) : issues);
     } else if (pathname === '/api/ready') {
       const ready = await execBd(['ready']);
-      jsonResponse(res, ready);
+      jsonResponse(res, Array.isArray(ready) ? ready.map(normalizeIssue) : ready);
     } else if (pathname === '/api/blocked') {
       const blocked = await execBd(['blocked']);
-      jsonResponse(res, blocked);
+      jsonResponse(res, Array.isArray(blocked) ? blocked.map(normalizeIssue) : blocked);
     } else if (pathname.startsWith('/api/issue/')) {
       const id = pathname.split('/api/issue/')[1];
       if (!id || !/^[\w-]+$/.test(id)) {

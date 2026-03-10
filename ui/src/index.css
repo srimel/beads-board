@@ -36,33 +36,34 @@
 }
 
 :root {
+  /* GitHub light default palette */
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.141 0.005 285.823);
-  --primary-foreground: oklch(0.985 0.001 285.823);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.141 0.005 285.823);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.141 0.005 285.823);
-  --sidebar: oklch(0.985 0.001 285.823);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.141 0.005 285.823);
-  --sidebar-primary-foreground: oklch(0.985 0.001 285.823);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.141 0.005 285.823);
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --card: #ffffff;
+  --card-foreground: #1f2328;
+  --popover: #ffffff;
+  --popover-foreground: #1f2328;
+  --primary: #1f2328;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f8fa;
+  --secondary-foreground: #1f2328;
+  --muted: #f6f8fa;
+  --muted-foreground: #656d76;
+  --accent: #f6f8fa;
+  --accent-foreground: #1f2328;
+  --destructive: #d1242f;
+  --border: #d0d7de;
+  --input: #d0d7de;
+  --ring: #0969da;
+  --sidebar: #f6f8fa;
+  --sidebar-foreground: #1f2328;
+  --sidebar-primary: #1f2328;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6f8fa;
+  --sidebar-accent-foreground: #1f2328;
+  --sidebar-border: #d0d7de;
+  --sidebar-ring: #0969da;
 }
 
 .dark {
@@ -93,4 +94,12 @@
   --sidebar-accent-foreground: #e6edf3;
   --sidebar-border: #30363d;
   --sidebar-ring: #388bfd;
+}
+
+@keyframes bead-enter {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-bead-enter {
+  animation: bead-enter 0.3s ease-out;
 }

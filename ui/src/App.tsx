@@ -1,8 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
+
+function playChime() {
+  const ctx = new AudioContext()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.frequency.value = 800
+  gain.gain.value = 0.3
+  osc.start()
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+  osc.stop(ctx.currentTime + 0.5)
+}
 
 function App() {
   const { data: issues, loading: issuesLoading, lastUpdated, error: issuesError } = useIssues()
@@ -13,6 +26,19 @@ function App() {
   const projectName = project?.name || 'beads-board'
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
+
+  // Track in_progress count to detect transition to zero
+  const prevInProgressCount = useRef<number | null>(null)
+  const inProgressCount = (issues || []).filter(i => i.status === 'in_progress').length
+
+  useEffect(() => {
+    if (loading) return
+    // Skip initial load — only trigger on transitions after first data arrives
+    if (prevInProgressCount.current !== null && prevInProgressCount.current > 0 && inProgressCount === 0) {
+      playChime()
+    }
+    prevInProgressCount.current = inProgressCount
+  }, [loading, inProgressCount])
 
   useEffect(() => {
     document.title = projectName

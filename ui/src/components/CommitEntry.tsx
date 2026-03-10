@@ -29,7 +29,7 @@ function renderMessage(message: string) {
 
 export function CommitEntry({ commit }: { commit: GitCommit }) {
   return (
-    <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0">
+    <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0 animate-bead-enter">
       <div className="flex items-center gap-2">
         <code className="text-xs text-muted-foreground shrink-0">{commit.hash}</code>
         <span className="text-xs text-muted-foreground ml-auto shrink-0">
