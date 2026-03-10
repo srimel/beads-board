@@ -125,7 +125,7 @@ async function handleRequest(req, res) {
       if (branch) args.splice(1, 0, branch);
       const stdout = await execGit(args);
       const commits = stdout.split('\x1e').filter(s => s.trim()).map(record => {
-        const [hash, message, body, author, date] = record.split('\0');
+        const [hash, message, body, author, date] = record.trim().split('\0');
         return { hash, message, body: body?.trim() || '', author, date };
       });
       jsonResponse(res, commits);
