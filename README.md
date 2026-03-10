@@ -27,12 +27,14 @@ Then from any project that uses [Beads](https://github.com/steveyegge/beads):
 
 ```bash
 cd /path/to/your/project
-bdui                     # Start dashboard for current directory
-bdui /path/to/project    # Or specify a project directory
+bdui                     # Start dashboard in background, prints URL
+bdui /path/to/project    # Specify a project directory
 bdui --port 9000         # Custom port
+bdui status              # Check if dashboard is running
+bdui stop                # Stop the dashboard
 ```
 
-Open **http://localhost:8377** in your browser. The server auto-detects an available port and reuses an existing instance if one is already running.
+The server starts in the background and returns control to your terminal. Open the printed URL (default **http://localhost:8377**) in your browser. Port auto-increments if taken.
 
 ### As a Claude Code Plugin
 
