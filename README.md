@@ -17,10 +17,10 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 
 ```bash
 # Install globally
-npm install -g beads-board
+npm install -g @stuart-rimel/beads-ui
 
 # Or run directly with npx
-npx beads-board
+npx @stuart-rimel/beads-ui
 ```
 
 Then from any project that uses [Beads](https://github.com/steveyegge/beads):
