@@ -4,8 +4,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { BranchSelector } from './BranchSelector'
 import { CommitEntry } from './CommitEntry'
 import { useGitLog, useBranches } from '@/hooks/useBeadsApi'
+import { PanelRightClose } from 'lucide-react'
 
-export function GitLog() {
+interface GitLogProps {
+  onCollapse?: () => void
+  onBeadClick?: (beadId: string) => void
+}
+
+export function GitLog({ onCollapse, onBeadClick }: GitLogProps) {
   const { data: branchData, loading: branchesLoading } = useBranches()
   const [selectedBranch, setSelectedBranch] = useState('')
 
@@ -15,7 +21,18 @@ export function GitLog() {
   return (
     <div className="flex flex-col h-full border-l border-border">
       <div className="p-3 border-b border-border shrink-0">
-        <h2 className="text-sm font-semibold mb-2">Git Log</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold">Git Log</h2>
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="p-1 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Collapse git log"
+            >
+              <PanelRightClose className="h-4 w-4" />
+            </button>
+          )}
+        </div>
         {branchesLoading ? (
           <Skeleton className="h-9 w-full" />
         ) : branchData ? (
@@ -32,7 +49,7 @@ export function GitLog() {
             <Skeleton key={i} className="h-16 mx-3 mb-2 rounded" />
           ))
         ) : commits?.length ? (
-          commits.map(commit => <CommitEntry key={commit.hash} commit={commit} />)
+          commits.map(commit => <CommitEntry key={commit.hash} commit={commit} onBeadClick={onBeadClick} />)
         ) : (
           <p className="text-xs text-muted-foreground text-center py-4">No commits</p>
         )}

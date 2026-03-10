@@ -4,6 +4,16 @@ import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { IssueDetailPanel } from '@/components/IssueDetailPanel'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
+import { PanelRightOpen } from 'lucide-react'
+
+export interface CardSourceRect {
+  top: number
+  left: number
+  width: number
+  height: number
+}
+
+const COLLAPSED_WIDTH_PX = 40
 
 function App() {
   const { data: issues, loading: issuesLoading, lastUpdated, error: issuesError } = useIssues()
@@ -15,41 +25,91 @@ function App() {
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
+  const [cardSourceRect, setCardSourceRect] = useState<CardSourceRect | null>(null)
+
+  const handleIssueClick = useCallback((id: string, rect?: CardSourceRect) => {
+    setCardSourceRect(rect || null)
+    setSelectedIssueId(id)
+  }, [])
+
+  const handleBeadClick = useCallback((beadId: string) => {
+    setCardSourceRect(null)
+    setSelectedIssueId(beadId)
+  }, [])
 
   const mainRef = useRef<HTMLDivElement>(null)
   const [splitPercent, setSplitPercent] = useState(() => {
     const saved = localStorage.getItem('beads-board-split')
     return saved ? Number(saved) : 65
   })
+  const [gitLogCollapsed, setGitLogCollapsed] = useState(() => {
+    return localStorage.getItem('beads-board-git-collapsed') === 'true'
+  })
+  const kanbanRef = useRef<HTMLDivElement>(null)
+  const gitLogRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number>(0)
+
+  const toggleGitLogCollapsed = useCallback(() => {
+    setGitLogCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('beads-board-git-collapsed', String(next))
+      return next
+    })
+  }, [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const main = mainRef.current
-    if (!main) return
+    const kanban = kanbanRef.current
+    const gitLog = gitLogRef.current
+    if (!main || !kanban || !gitLog) return
+
+    // Auto-expand if collapsed when user starts dragging
+    if (gitLogCollapsed) {
+      setGitLogCollapsed(false)
+      localStorage.setItem('beads-board-git-collapsed', 'false')
+    }
+
+    // Remove transitions during drag
+    kanban.style.transition = 'none'
+    gitLog.style.transition = 'none'
 
     const onMouseMove = (e: MouseEvent) => {
-      const rect = main.getBoundingClientRect()
-      const pct = ((e.clientX - rect.left) / rect.width) * 100
-      const clamped = Math.min(85, Math.max(30, pct))
-      setSplitPercent(clamped)
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = requestAnimationFrame(() => {
+        const rect = main.getBoundingClientRect()
+        const pct = ((e.clientX - rect.left) / rect.width) * 100
+        const clamped = Math.min(85, Math.max(30, pct))
+        // Direct DOM update — no React re-render during drag
+        kanban.style.width = `${clamped}%`
+        gitLog.style.width = `${100 - clamped}%`
+        splitPercentRef.current = clamped
+      })
     }
 
     const onMouseUp = () => {
+      cancelAnimationFrame(rafRef.current)
       document.removeEventListener('mousemove', onMouseMove)
       document.removeEventListener('mouseup', onMouseUp)
+      // Restore transitions
+      kanban.style.transition = ''
+      gitLog.style.transition = ''
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
-      setSplitPercent(prev => {
-        localStorage.setItem('beads-board-split', String(prev))
-        return prev
-      })
+      // Sync React state and persist
+      const final = splitPercentRef.current
+      setSplitPercent(final)
+      localStorage.setItem('beads-board-split', String(final))
     }
 
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
-  }, [])
+  }, [gitLogCollapsed])
+
+  const splitPercentRef = useRef(splitPercent)
+  splitPercentRef.current = splitPercent
 
   useEffect(() => {
     document.title = projectName
@@ -83,13 +143,20 @@ function App() {
       {/* Main content */}
       <main ref={mainRef} className="flex flex-1 min-h-0">
         {/* Kanban */}
-        <div style={{ width: `${splitPercent}%` }} className="pl-3 pt-3 pb-3 pr-0 overflow-hidden">
+        <div
+          ref={kanbanRef}
+          style={gitLogCollapsed
+            ? { width: `calc(100% - ${COLLAPSED_WIDTH_PX}px - 4px)` }
+            : { width: `${splitPercent}%` }
+          }
+          className="pl-3 pt-3 pb-3 pr-0 overflow-hidden transition-[width] duration-200"
+        >
           <KanbanBoard
             issues={issues || []}
             ready={ready || []}
             blocked={blocked || []}
             loading={loading}
-            onIssueClick={setSelectedIssueId}
+            onIssueClick={handleIssueClick}
           />
         </div>
 
@@ -100,14 +167,30 @@ function App() {
         />
 
         {/* Git Log */}
-        <div style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden">
-          <GitLog />
-        </div>
+        {gitLogCollapsed ? (
+          <div
+            style={{ width: `${COLLAPSED_WIDTH_PX}px` }}
+            className="flex flex-col items-center border-l border-border shrink-0 transition-[width] duration-200"
+          >
+            <button
+              onClick={toggleGitLogCollapsed}
+              className="mt-3 p-1.5 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+              title="Expand git log"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div ref={gitLogRef} style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden transition-[width] duration-200">
+            <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} />
+          </div>
+        )}
       </main>
       <IssueDetailPanel
         issueId={selectedIssueId}
         open={selectedIssueId !== null}
         onClose={() => setSelectedIssueId(null)}
+        sourceRect={cardSourceRect}
       />
     </div>
   )

@@ -1,13 +1,14 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { KanbanColumn } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
+import type { CardSourceRect } from '@/App'
 
 interface KanbanBoardProps {
   issues: BeadIssue[]
   ready: BeadIssue[]
   blocked: BeadIssue[]
   loading?: boolean
-  onIssueClick?: (id: string) => void
+  onIssueClick?: (id: string, rect?: CardSourceRect) => void
 }
 
 export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }: KanbanBoardProps) {

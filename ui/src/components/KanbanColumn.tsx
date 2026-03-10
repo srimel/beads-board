@@ -1,13 +1,14 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { BeadCard } from './BeadCard'
 import type { BeadIssue } from '@/lib/types'
+import type { CardSourceRect } from '@/App'
 
 interface KanbanColumnProps {
   title: string
   issues: BeadIssue[]
   accentColor: string
   loading?: boolean
-  onIssueClick?: (id: string) => void
+  onIssueClick?: (id: string, rect?: CardSourceRect) => void
 }
 
 export function KanbanColumn({ title, issues, accentColor, loading, onIssueClick }: KanbanColumnProps) {

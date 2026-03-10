@@ -1,7 +1,9 @@
+import { useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { BeadIssue } from '@/lib/types'
+import type { CardSourceRect } from '@/App'
 
 const PRIORITY_COLORS: Record<number, string> = {
   0: 'text-[#f85149]',
@@ -19,13 +21,26 @@ const TYPE_STYLES: Record<string, string> = {
   chore: 'bg-[#7d8590]/15 text-[#7d8590] border-[#7d8590]/30',
 }
 
-export function BeadCard({ issue, onClick }: { issue: BeadIssue; onClick?: (id: string) => void }) {
+export function BeadCard({ issue, onClick }: { issue: BeadIssue; onClick?: (id: string, rect?: CardSourceRect) => void }) {
   const depCount = issue.dependencies?.length || 0
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const handleClick = () => {
+    if (!onClick) return
+    const el = cardRef.current
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      onClick(issue.id, { top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+    } else {
+      onClick(issue.id)
+    }
+  }
 
   return (
     <Card
+      ref={cardRef}
       className="mb-2 p-2.5 gap-1 border-border animate-bead-enter cursor-pointer hover:border-primary/50 transition-colors"
-      onClick={() => onClick?.(issue.id)}
+      onClick={handleClick}
     >
       <div className="flex items-center justify-between gap-2">
         <code className="text-xs text-muted-foreground">{issue.id}</code>
