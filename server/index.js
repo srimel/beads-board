@@ -137,6 +137,21 @@ async function handleRequest(req, res) {
         if (match) name = match[1];
       } catch {}
       jsonResponse(res, { name });
+    } else if (pathname === '/api/dependencies') {
+      const issues = await execBd(['list', '--flat', '--status=all']);
+      const allIssues = Array.isArray(issues) ? issues.map(normalizeIssue) : [];
+      const edges = [];
+      for (const issue of allIssues) {
+        if (issue.dependencies && Array.isArray(issue.dependencies)) {
+          for (const dep of issue.dependencies) {
+            const depId = typeof dep === 'string' ? dep : dep.id || dep.issue_id;
+            if (depId) {
+              edges.push({ from: issue.id, to: depId });
+            }
+          }
+        }
+      }
+      jsonResponse(res, { nodes: allIssues, edges });
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
       const branches = stdout.trim().split('\n').filter(Boolean);
