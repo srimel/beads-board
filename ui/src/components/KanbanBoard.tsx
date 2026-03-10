@@ -52,6 +52,7 @@ export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }
           issues={done}
           accentColor="border-[#484f58]"
           loading={loading}
+          sortable
           onIssueClick={onIssueClick}
         />
       </div>
