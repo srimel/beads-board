@@ -1,0 +1,11 @@
+# Dev/build sources (built assets in server/dist/ are the runtime)
+.beads-board.pid
+ui/
+docs/
+.beads/
+.claude-plugin/
+.playwright-mcp/
+skills/
+commands/
+CLAUDE.md
+AGENTS.md
