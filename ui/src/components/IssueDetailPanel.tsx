@@ -23,12 +23,20 @@ interface IssueDetail {
   parent?: string
 }
 
-const PRIORITY_STYLES: Record<number, string> = {
-  0: 'bg-[#da3633]/20 text-[#f85149] border border-[#da3633]/40',
-  1: 'bg-[#d29922]/20 text-[#e3b341] border border-[#d29922]/40',
-  2: 'bg-[#388bfd]/20 text-[#58a6ff] border border-[#388bfd]/40',
-  3: 'bg-[#7d8590]/20 text-[#7d8590] border border-[#7d8590]/40',
-  4: 'bg-muted text-muted-foreground',
+const PRIORITY_COLORS: Record<number, string> = {
+  0: 'text-[#f85149]',
+  1: 'text-[#e3b341]',
+  2: 'text-[#58a6ff]',
+  3: 'text-[#7d8590]',
+  4: 'text-muted-foreground',
+}
+
+const TYPE_STYLES: Record<string, string> = {
+  bug: 'bg-[#da3633]/15 text-[#f85149] border-[#da3633]/30',
+  feature: 'bg-[#8957e5]/15 text-[#bc8cff] border-[#8957e5]/30',
+  task: 'bg-[#2dd4bf]/15 text-[#5eead4] border-[#2dd4bf]/30',
+  epic: 'bg-[#d29922]/15 text-[#e3b341] border-[#d29922]/30',
+  chore: 'bg-[#7d8590]/15 text-[#7d8590] border-[#7d8590]/30',
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -234,18 +242,18 @@ export function IssueDetailPanel({
               <ScrollArea className="max-h-[80vh]">
                 <div className="p-5 pb-3">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <code className="text-xs text-muted-foreground">{detail.id}</code>
-                    <Badge className={STATUS_STYLES[detail.status] || ''}>
-                      {detail.status.replace('_', ' ')}
-                    </Badge>
-                    <Badge className={PRIORITY_STYLES[detail.priority] || PRIORITY_STYLES[4]}>
+                    <span className={`text-xs font-semibold ${PRIORITY_COLORS[detail.priority] || PRIORITY_COLORS[4]}`}>
                       P{detail.priority}
-                    </Badge>
+                    </span>
+                    <code className="text-xs text-muted-foreground">{detail.id}</code>
                     {detail.issue_type && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className={TYPE_STYLES[detail.issue_type] || ''}>
                         {detail.issue_type}
                       </Badge>
                     )}
+                    <Badge className={STATUS_STYLES[detail.status] || ''}>
+                      {detail.status.replace('_', ' ')}
+                    </Badge>
                   </div>
                   <h2 id="issue-detail-title" className="text-base leading-tight font-semibold text-foreground">{detail.title}</h2>
                   {detail.owner && (
