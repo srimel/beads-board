@@ -33,6 +33,16 @@ function App() {
   }, [])
 
   const handleBeadClick = useCallback((beadId: string) => {
+    // Scroll to and highlight the matching card on the kanban board
+    const card = document.querySelector(`[data-bead-id="${beadId}"]`) as HTMLElement | null
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      card.classList.remove('animate-bead-highlight')
+      // Force reflow so re-adding the class restarts the animation
+      void card.offsetWidth
+      card.classList.add('animate-bead-highlight')
+      setTimeout(() => card.classList.remove('animate-bead-highlight'), 1200)
+    }
     setCardSourceRect(null)
     setSelectedIssueId(beadId)
   }, [])
