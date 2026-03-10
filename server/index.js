@@ -152,6 +152,30 @@ async function handleRequest(req, res) {
         }
       }
       jsonResponse(res, { nodes: allIssues, edges });
+    } else if (pathname === '/api/projects') {
+      try {
+        const parentDir = path.dirname(PROJECT_DIR);
+        const entries = fs.readdirSync(parentDir, { withFileTypes: true });
+        const projects = [];
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const fullPath = path.join(parentDir, entry.name);
+            const beadsDir = path.join(fullPath, '.beads');
+            try {
+              const stat = fs.statSync(beadsDir);
+              if (stat.isDirectory()) {
+                projects.push({ name: entry.name, path: fullPath });
+              }
+            } catch {
+              // No .beads directory, skip
+            }
+          }
+        }
+        projects.sort((a, b) => a.name.localeCompare(b.name));
+        jsonResponse(res, projects);
+      } catch {
+        jsonResponse(res, []);
+      }
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
       const branches = stdout.trim().split('\n').filter(Boolean);
