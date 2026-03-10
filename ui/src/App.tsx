@@ -4,6 +4,8 @@ import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { IssueDetailPanel } from '@/components/IssueDetailPanel'
 import { DependencyGraph } from '@/components/DependencyGraph'
+import { FilterBar, applyFilters } from '@/components/FilterBar'
+import type { Filters } from '@/components/FilterBar'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 import { PanelRightOpen, Network } from 'lucide-react'
 
@@ -28,6 +30,11 @@ function App() {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [cardSourceRect, setCardSourceRect] = useState<CardSourceRect | null>(null)
   const [showDag, setShowDag] = useState(false)
+  const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all' })
+
+  const filteredIssues = applyFilters(issues || [], filters)
+  const filteredReady = applyFilters(ready || [], filters)
+  const filteredBlocked = applyFilters(blocked || [], filters)
 
   const handleIssueClick = useCallback((id: string, rect?: CardSourceRect) => {
     setCardSourceRect(rect || null)
@@ -163,6 +170,11 @@ function App() {
         </div>
       )}
 
+      {/* Filter bar */}
+      {!showDag && (
+        <FilterBar filters={filters} onFiltersChange={setFilters} issues={issues || []} />
+      )}
+
       {/* Main content */}
       {showDag ? (
         <main className="flex-1 min-h-0">
@@ -186,9 +198,9 @@ function App() {
             className="pl-3 pt-3 pb-3 pr-0 overflow-hidden transition-[width] duration-200"
           >
             <KanbanBoard
-              issues={issues || []}
-              ready={ready || []}
-              blocked={blocked || []}
+              issues={filteredIssues}
+              ready={filteredReady}
+              blocked={filteredBlocked}
               loading={loading}
               onIssueClick={handleIssueClick}
             />
