@@ -49,7 +49,7 @@ export function BeadCard({ issue, onClick, celebrating }: BeadCardProps) {
     <Card
       ref={cardRef}
       data-bead-id={issue.id}
-      className="mb-2 p-2.5 gap-1 border-border animate-bead-enter cursor-pointer hover:border-primary/50 transition-colors"
+      className="mb-2 p-2.5 gap-1 border-border cursor-pointer hover:border-primary/50 transition-colors"
       onClick={handleClick}
     >
       <div className="flex items-center justify-between gap-2">

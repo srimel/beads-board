@@ -31,6 +31,9 @@ function statusInfo(status: string) {
 export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogProps) {
   const { data: branchData, loading: branchesLoading } = useBranches()
   const [selectedBranch, setSelectedBranch] = useState('')
+  const [activeTab, setActiveTab] = useState(() =>
+    localStorage.getItem('beads-board-git-tab') || 'log'
+  )
 
   const branch = selectedBranch || branchData?.current || ''
   const { data: commits, loading: commitsLoading } = useGitLog(branch)
@@ -61,7 +64,7 @@ export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogPro
           />
         ) : null}
       </div>
-      <Tabs defaultValue="log" className="flex flex-col flex-1 min-h-0">
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); localStorage.setItem('beads-board-git-tab', v) }} className="flex flex-col flex-1 min-h-0">
         <TabsList className="mx-3 mt-2 shrink-0">
           <TabsTrigger value="log" className="gap-1.5">
             <GitCommitHorizontal className="h-3.5 w-3.5" />
