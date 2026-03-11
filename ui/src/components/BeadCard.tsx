@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
@@ -26,10 +26,9 @@ interface BeadCardProps {
   issue: BeadIssue
   onClick?: (id: string, rect?: CardSourceRect) => void
   celebrating?: boolean
-  onCelebrationDone?: (id: string) => void
 }
 
-export function BeadCard({ issue, onClick, celebrating, onCelebrationDone }: BeadCardProps) {
+export function BeadCard({ issue, onClick, celebrating }: BeadCardProps) {
   const depCount = issue.dependencies?.length || 0
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -44,13 +43,9 @@ export function BeadCard({ issue, onClick, celebrating, onCelebrationDone }: Bea
     }
   }
 
-  const handleCelebrationComplete = useCallback(() => {
-    onCelebrationDone?.(issue.id)
-  }, [issue.id, onCelebrationDone])
-
   return (
     <div className={celebrating ? 'celebration-card-wrapper' : undefined}>
-      {celebrating && <CelebrationAnimation onComplete={handleCelebrationComplete} />}
+      {celebrating && <CelebrationAnimation />}
     <Card
       ref={cardRef}
       data-bead-id={issue.id}

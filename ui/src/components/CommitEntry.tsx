@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
 import type { GitCommit } from '@/lib/types'
 
-const BEAD_ID_REGEX = /\b([\w]+-[\w]+-[a-z0-9]{2,8})\b/g
+const BEAD_ID_PATTERN = /\b([\w]+-[\w]+-[a-z0-9]{2,8})\b/
 
 function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr)
@@ -18,10 +18,9 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function renderMessage(message: string, onBeadClick?: (beadId: string) => void) {
-  const parts = message.split(BEAD_ID_REGEX)
+  const parts = message.split(new RegExp(BEAD_ID_PATTERN.source, 'g'))
   return parts.map((part, i) => {
-    if (BEAD_ID_REGEX.test(part)) {
-      BEAD_ID_REGEX.lastIndex = 0
+    if (BEAD_ID_PATTERN.test(part)) {
       return (
         <Badge
           key={i}
@@ -44,7 +43,7 @@ function renderMessage(message: string, onBeadClick?: (beadId: string) => void) 
 function extractBeadIds(message: string): string[] {
   const ids: string[] = []
   let match: RegExpExecArray | null
-  const re = /\b([\w]+-[\w]+-[a-z0-9]{2,8})\b/g
+  const re = new RegExp(BEAD_ID_PATTERN.source, 'g')
   while ((match = re.exec(message)) !== null) {
     ids.push(match[1])
   }

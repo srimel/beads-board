@@ -3,18 +3,15 @@ import { useEffect, useState } from 'react'
 /**
  * Kawaii pixel-art celebration animation.
  * Renders a burst of pixel sparkles and a tiny dancing star character
- * that plays for ~1.5s then auto-dismisses.
+ * that plays for ~1.8s then auto-dismisses.
  */
-export function CelebrationAnimation({ onComplete }: { onComplete?: () => void }) {
+export function CelebrationAnimation() {
   const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false)
-      onComplete?.()
-    }, 1800)
+    const timer = setTimeout(() => setVisible(false), 1800)
     return () => clearTimeout(timer)
-  }, [onComplete])
+  }, [])
 
   if (!visible) return null
 

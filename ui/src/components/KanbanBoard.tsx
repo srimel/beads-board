@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { KanbanColumn } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
@@ -61,11 +61,6 @@ export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }
 
   const newlyClosed = useNewlyClosed(done)
 
-  const handleCelebrationDone = useCallback((id: string) => {
-    // Animation auto-clears via the timeout in useNewlyClosed
-    void id
-  }, [])
-
   // Backlog: everything that isn't ready, in_progress, or closed
   const backlog = issues.filter(i =>
     i.status !== 'in_progress' &&
@@ -105,7 +100,6 @@ export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }
           sortable
           onIssueClick={onIssueClick}
           celebratingIds={newlyClosed}
-          onCelebrationDone={handleCelebrationDone}
         />
       </div>
     </ScrollArea>

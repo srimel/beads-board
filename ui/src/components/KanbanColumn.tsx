@@ -15,7 +15,6 @@ interface KanbanColumnProps {
   sortable?: boolean
   onIssueClick?: (id: string, rect?: CardSourceRect) => void
   celebratingIds?: Set<string>
-  onCelebrationDone?: (id: string) => void
 }
 
 function sortIssues(issues: BeadIssue[], mode: SortMode): BeadIssue[] {
@@ -31,7 +30,7 @@ function sortIssues(issues: BeadIssue[], mode: SortMode): BeadIssue[] {
   })
 }
 
-export function KanbanColumn({ title, issues, accentColor, loading, sortable, onIssueClick, celebratingIds, onCelebrationDone }: KanbanColumnProps) {
+export function KanbanColumn({ title, issues, accentColor, loading, sortable, onIssueClick, celebratingIds }: KanbanColumnProps) {
   const [sortMode, setSortMode] = useState<SortMode>('recent')
 
   const sortedIssues = useMemo(
@@ -71,7 +70,6 @@ export function KanbanColumn({ title, issues, accentColor, loading, sortable, on
               issue={issue}
               onClick={onIssueClick}
               celebrating={celebratingIds?.has(issue.id)}
-              onCelebrationDone={onCelebrationDone}
             />
           ))
         )}
