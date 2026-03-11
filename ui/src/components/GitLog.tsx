@@ -9,9 +9,10 @@ import { PanelRightClose } from 'lucide-react'
 interface GitLogProps {
   onCollapse?: () => void
   onBeadClick?: (beadId: string) => void
+  highlightedBeadId?: string | null
 }
 
-export function GitLog({ onCollapse, onBeadClick }: GitLogProps) {
+export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogProps) {
   const { data: branchData, loading: branchesLoading } = useBranches()
   const [selectedBranch, setSelectedBranch] = useState('')
 
@@ -49,7 +50,7 @@ export function GitLog({ onCollapse, onBeadClick }: GitLogProps) {
             <Skeleton key={i} className="h-16 mx-3 mb-2 rounded" />
           ))
         ) : commits?.length ? (
-          commits.map(commit => <CommitEntry key={commit.hash} commit={commit} onBeadClick={onBeadClick} />)
+          commits.map(commit => <CommitEntry key={commit.hash} commit={commit} onBeadClick={onBeadClick} highlightedBeadId={highlightedBeadId} />)
         ) : (
           <p className="text-xs text-muted-foreground text-center py-4">No commits</p>
         )}
