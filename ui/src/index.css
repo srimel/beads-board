@@ -204,3 +204,12 @@
 .celebration-card-wrapper {
   position: relative;
 }
+
+/* === Commit highlight animation === */
+@keyframes commit-highlight {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: hsl(var(--primary) / 0.15); }
+}
+.animate-commit-highlight {
+  animation: commit-highlight 0.8s ease-in-out 3;
+}

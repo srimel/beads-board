@@ -41,14 +41,31 @@ function renderMessage(message: string, onBeadClick?: (beadId: string) => void) 
   })
 }
 
+function extractBeadIds(message: string): string[] {
+  const ids: string[] = []
+  let match: RegExpExecArray | null
+  const re = /\b([\w]+-[\w]+-[a-z0-9]{2,8})\b/g
+  while ((match = re.exec(message)) !== null) {
+    ids.push(match[1])
+  }
+  return ids
+}
+
 interface CommitEntryProps {
   commit: GitCommit
   onBeadClick?: (beadId: string) => void
+  highlightedBeadId?: string | null
 }
 
-export function CommitEntry({ commit, onBeadClick }: CommitEntryProps) {
+export function CommitEntry({ commit, onBeadClick, highlightedBeadId }: CommitEntryProps) {
+  const beadIds = extractBeadIds(commit.message)
+  const isHighlighted = highlightedBeadId ? beadIds.includes(highlightedBeadId) : false
+
   return (
-    <div className="flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0 animate-bead-enter min-w-0">
+    <div
+      className={`flex flex-col gap-0.5 py-2 px-3 border-b border-border last:border-0 animate-bead-enter min-w-0 transition-colors ${isHighlighted ? 'animate-commit-highlight bg-primary/10' : ''}`}
+      {...(beadIds.length > 0 ? { 'data-commit-beads': beadIds.join(' ') } : {})}
+    >
       <div className="flex items-center gap-2">
         <code className="text-xs text-muted-foreground shrink-0">{commit.hash}</code>
         <span className="text-xs text-muted-foreground ml-auto shrink-0">

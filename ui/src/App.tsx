@@ -31,6 +31,8 @@ function App() {
   const [cardSourceRect, setCardSourceRect] = useState<CardSourceRect | null>(null)
   const [showDag, setShowDag] = useState(false)
   const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all' })
+  const [highlightedBeadId, setHighlightedBeadId] = useState<string | null>(null)
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filteredIssues = applyFilters(issues || [], filters)
   const filteredReady = applyFilters(ready || [], filters)
@@ -39,9 +41,23 @@ function App() {
   const handleIssueClick = useCallback((id: string, rect?: CardSourceRect) => {
     setCardSourceRect(rect || null)
     setSelectedIssueId(id)
+    // Highlight related commits in git log
+    setHighlightedBeadId(id)
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
+    highlightTimerRef.current = setTimeout(() => setHighlightedBeadId(null), 4000)
+    // Scroll to first matching commit in git log
+    requestAnimationFrame(() => {
+      const firstCommit = document.querySelector(`[data-commit-beads~="${id}"]`) as HTMLElement | null
+      if (firstCommit) {
+        firstCommit.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    })
   }, [])
 
   const handleBeadClick = useCallback((beadId: string) => {
+    // Clear any commit highlight when navigating from git log to kanban
+    setHighlightedBeadId(null)
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current)
     // Scroll to and highlight the matching card on the kanban board
     const card = document.querySelector(`[data-bead-id="${beadId}"]`) as HTMLElement | null
     if (card) {
@@ -228,7 +244,7 @@ function App() {
             </div>
           ) : (
             <div ref={gitLogRef} style={{ width: `${100 - splitPercent}%` }} className="overflow-hidden transition-[width] duration-200">
-              <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} />
+              <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} highlightedBeadId={highlightedBeadId} />
             </div>
           )}
         </main>
