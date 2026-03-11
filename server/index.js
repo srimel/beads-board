@@ -176,6 +176,14 @@ async function handleRequest(req, res) {
       } catch {
         jsonResponse(res, []);
       }
+    } else if (pathname === '/api/git-status') {
+      const stdout = await execGit(['status', '--porcelain']);
+      const files = stdout.replace(/\n$/, '').split('\n').filter(Boolean).map(line => {
+        const match = line.match(/^(..)[ ](.+)$/);
+        if (!match) return { status: '?', path: line.trim() };
+        return { status: match[1].trim(), path: match[2] };
+      });
+      jsonResponse(res, files);
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
       const branches = stdout.trim().split('\n').filter(Boolean);

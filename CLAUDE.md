@@ -42,6 +42,7 @@ node server/index.js
 
 ## Key Conventions
 
+- **Conventional Commits** — always use the [Conventional Commits](https://www.conventionalcommits.org/) format: `type(scope): description` (e.g. `feat: add celebration animation`, `fix(server): increase bd list limit`). Common types: `feat`, `fix`, `chore`, `refactor`, `docs`, `style`, `test`.
 - **No Co-Authored-By in commits** — never add `Co-Authored-By` lines to commit messages.
 - **Server has zero npm dependencies** — only Node.js stdlib. Keep it that way.
 - **Built assets in `server/dist/` are committed** — rebuild and commit after UI changes.

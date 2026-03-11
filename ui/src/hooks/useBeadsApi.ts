@@ -38,6 +38,11 @@ export function useBranches() {
   return usePolling(fetchFn, 30000)  // Branches change less often
 }
 
+export function useGitStatus() {
+  const fetchFn = useCallback(() => fetchJson<{ status: string; path: string }[]>('/api/git-status'), [])
+  return usePolling(fetchFn)
+}
+
 export function useProject() {
   const fetchFn = useCallback(() => fetchJson<{ name: string }>('/api/project'), [])
   return usePolling(fetchFn, 60000)  // Project name rarely changes
