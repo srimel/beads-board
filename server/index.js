@@ -97,7 +97,7 @@ async function handleRequest(req, res) {
 
   try {
     if (pathname === '/api/issues') {
-      const issues = await execBd(['list', '--flat', '--status=all']);
+      const issues = await execBd(['list', '--flat', '--status=all', '--limit=0']);
       jsonResponse(res, Array.isArray(issues) ? issues.map(normalizeIssue) : issues);
     } else if (pathname === '/api/ready') {
       const ready = await execBd(['ready']);
@@ -138,7 +138,7 @@ async function handleRequest(req, res) {
       } catch {}
       jsonResponse(res, { name });
     } else if (pathname === '/api/dependencies') {
-      const issues = await execBd(['list', '--flat', '--status=all']);
+      const issues = await execBd(['list', '--flat', '--status=all', '--limit=0']);
       const allIssues = Array.isArray(issues) ? issues.map(normalizeIssue) : [];
       const edges = [];
       for (const issue of allIssues) {

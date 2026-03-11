@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { KanbanColumn } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
@@ -14,14 +14,19 @@ interface KanbanBoardProps {
 
 /**
  * Tracks which issue IDs just moved to "closed" status between poll cycles.
- * On the very first render we seed the set without flagging anything as "new".
+ * Uses a stable key derived from sorted IDs to avoid spurious effect runs.
  */
 function useNewlyClosed(done: BeadIssue[]): Set<string> {
+  // Create a stable key from the sorted set of closed IDs so the effect
+  // only runs when the actual set of closed issues changes, not on every render.
+  const doneIds = useMemo(() => done.map(i => i.id).sort(), [done])
+  const doneKey = doneIds.join(',')
+
   const prevClosedIds = useRef<Set<string> | null>(null)
   const [newlyClosed, setNewlyClosed] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    const currentIds = new Set(done.map(i => i.id))
+    const currentIds = new Set(doneIds)
 
     if (prevClosedIds.current === null) {
       // First load — seed without triggering celebrations
@@ -40,11 +45,11 @@ function useNewlyClosed(done: BeadIssue[]): Set<string> {
 
     if (freshlyDone.size > 0) {
       setNewlyClosed(freshlyDone)
-      // Auto-clear after animation duration
       const timer = setTimeout(() => setNewlyClosed(new Set()), 2000)
       return () => clearTimeout(timer)
     }
-  }, [done])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doneKey])
 
   return newlyClosed
 }
