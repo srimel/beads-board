@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const { execFile } = require('node:child_process');
 const path = require('node:path');
 const url = require('node:url');
+const { attachTerminal, cleanupAllPtys } = require('./terminal.js');
 
 const DEFAULT_PORT = 8377;
 const DIST_DIR = path.join(__dirname, 'dist');
@@ -302,6 +303,11 @@ function findAvailablePort(startPort) {
 
 const server = http.createServer(handleRequest);
 
+const terminalEnabled = attachTerminal(server, PROJECT_DIR);
+if (terminalEnabled) {
+  console.log('Terminal feature enabled');
+}
+
 async function start() {
   const existing = getRunningInstance();
   if (existing) {
@@ -316,7 +322,7 @@ async function start() {
   });
 }
 
-process.on('SIGTERM', () => { removePidfile(); process.exit(0); });
-process.on('SIGINT', () => { removePidfile(); process.exit(0); });
+process.on('SIGTERM', () => { cleanupAllPtys(); removePidfile(); process.exit(0); });
+process.on('SIGINT', () => { cleanupAllPtys(); removePidfile(); process.exit(0); });
 
 start();

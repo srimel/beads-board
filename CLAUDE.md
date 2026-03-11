@@ -44,7 +44,7 @@ node server/index.js
 
 - **Conventional Commits** — always use the [Conventional Commits](https://www.conventionalcommits.org/) format: `type(scope): description` (e.g. `feat: add celebration animation`, `fix(server): increase bd list limit`). Common types: `feat`, `fix`, `chore`, `refactor`, `docs`, `style`, `test`.
 - **No Co-Authored-By in commits** — never add `Co-Authored-By` lines to commit messages.
-- **Server has zero npm dependencies** — only Node.js stdlib. Keep it that way.
+- **Server has minimal npm dependencies** — `node-pty` and `ws` are required for the integrated terminal. The core dashboard (kanban + git log) uses only Node.js stdlib and works without these dependencies.
 - **Built assets in `server/dist/` are committed** — rebuild and commit after UI changes.
 - **All data access goes through CLI** — use `bd <command> --json` and `git` commands, never direct DB/Dolt access.
 - **shadcn/ui for all UI components** — reference LLM-optimized docs at https://ui.shadcn.com/llms.txt when doing UI work.
@@ -64,6 +64,7 @@ All API endpoints are in `server/index.js`:
 | `GET /api/issue/:id` | `bd show <id> --json` |
 | `GET /api/git-log?branch=&limit=50` | `git log` with JSON format |
 | `GET /api/branches` | `git branch` |
+| `WS /ws/terminal` | node-pty shell | WebSocket PTY stream |
 
 ## Beads Data Model
 

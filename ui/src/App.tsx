@@ -7,7 +7,8 @@ import { DependencyGraph } from '@/components/DependencyGraph'
 import { FilterBar, applyFilters } from '@/components/FilterBar'
 import type { Filters } from '@/components/FilterBar'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
-import { PanelRightOpen, Network } from 'lucide-react'
+import { TerminalPanel } from '@/components/TerminalPanel'
+import { PanelRightOpen, Network, TerminalSquare } from 'lucide-react'
 
 export interface CardSourceRect {
   top: number
@@ -33,6 +34,13 @@ function App() {
   const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all' })
   const [highlightedBeadId, setHighlightedBeadId] = useState<string | null>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [terminalOpen, setTerminalOpen] = useState(() => {
+    return localStorage.getItem('beads-board-terminal-open') === 'true'
+  })
+  const [terminalHeight, setTerminalHeight] = useState(() => {
+    const saved = localStorage.getItem('beads-board-terminal-height')
+    return saved ? Number(saved) : 300
+  })
 
   const filteredIssues = applyFilters(issues || [], filters)
   const filteredReady = applyFilters(ready || [], filters)
@@ -150,6 +158,21 @@ function App() {
     document.title = projectName
   }, [projectName])
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '`' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        setTerminalOpen(prev => {
+          const next = !prev
+          localStorage.setItem('beads-board-terminal-open', String(next))
+          return next
+        })
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top bar */}
@@ -174,6 +197,21 @@ function App() {
             title={showDag ? 'Show kanban board' : 'Show dependency graph'}
           >
             <Network className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setTerminalOpen(prev => {
+              const next = !prev
+              localStorage.setItem('beads-board-terminal-open', String(next))
+              return next
+            })}
+            className={`rounded-md p-2 transition-colors ${
+              terminalOpen
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+            title={terminalOpen ? 'Hide terminal (Ctrl+`)' : 'Show terminal (Ctrl+`)'}
+          >
+            <TerminalSquare className="h-4 w-4" />
           </button>
           <ThemeToggle />
         </div>
@@ -204,22 +242,61 @@ function App() {
         </main>
       ) : (
         <main ref={mainRef} className="flex flex-1 min-h-0">
-          {/* Kanban */}
+          {/* Kanban + Terminal */}
           <div
             ref={kanbanRef}
             style={gitLogCollapsed
               ? { width: `calc(100% - ${COLLAPSED_WIDTH_PX}px - 4px)` }
               : { width: `${splitPercent}%` }
             }
-            className="pl-3 pt-3 pb-3 pr-0 overflow-hidden transition-[width] duration-200"
+            className="flex flex-col overflow-hidden transition-[width] duration-200"
           >
-            <KanbanBoard
-              issues={filteredIssues}
-              ready={filteredReady}
-              blocked={filteredBlocked}
-              loading={loading}
-              onIssueClick={handleIssueClick}
-            />
+            {/* Kanban board — takes remaining space */}
+            <div className="flex-1 min-h-0 pl-3 pt-3 pb-3 pr-0 overflow-hidden">
+              <KanbanBoard
+                issues={filteredIssues}
+                ready={filteredReady}
+                blocked={filteredBlocked}
+                loading={loading}
+                onIssueClick={handleIssueClick}
+              />
+            </div>
+
+            {/* Terminal resize edge + panel */}
+            {terminalOpen && (
+              <>
+                <div
+                  className="h-1 cursor-row-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors border-t border-border"
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    const startY = e.clientY
+                    const startHeight = terminalHeight
+
+                    const onMouseMove = (e: MouseEvent) => {
+                      const delta = startY - e.clientY
+                      const newHeight = Math.max(100, Math.min(startHeight + delta, window.innerHeight * 0.7))
+                      setTerminalHeight(newHeight)
+                      localStorage.setItem('beads-board-terminal-height', String(newHeight))
+                    }
+
+                    const onMouseUp = () => {
+                      document.removeEventListener('mousemove', onMouseMove)
+                      document.removeEventListener('mouseup', onMouseUp)
+                      document.body.style.cursor = ''
+                      document.body.style.userSelect = ''
+                    }
+
+                    document.body.style.cursor = 'row-resize'
+                    document.body.style.userSelect = 'none'
+                    document.addEventListener('mousemove', onMouseMove)
+                    document.addEventListener('mouseup', onMouseUp)
+                  }}
+                />
+                <div style={{ height: `${terminalHeight}px` }} className="shrink-0">
+                  <TerminalPanel visible={terminalOpen} />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Draggable splitter */}

@@ -26,5 +26,9 @@
   },
   "homepage": "https://github.com/srimel/beads-board",
   "author": "Stuart Rimel <stuart.rimel@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "node-pty": "^1.1.0",
+    "ws": "^8.19.0"
+  }
 }
