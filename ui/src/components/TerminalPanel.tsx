@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
@@ -7,7 +7,11 @@ interface TerminalPanelProps {
   visible: boolean
 }
 
-export function TerminalPanel({ visible }: TerminalPanelProps) {
+export interface TerminalPanelHandle {
+  resetSession: () => void
+}
+
+export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(function TerminalPanel({ visible }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -63,6 +67,23 @@ export function TerminalPanel({ visible }: TerminalPanelProps) {
       ws.close()
     }
   }, [])
+
+  const resetSession = useCallback(() => {
+    // Set exitedRef true BEFORE closing so onclose handler doesn't auto-reconnect
+    exitedRef.current = true
+    wsRef.current?.close()
+    wsRef.current = null
+    // Don't reset exitedRef here — connect() does it, and onclose fires async
+    const terminal = terminalRef.current
+    if (terminal) {
+      terminal.clear()
+      terminal.reset()
+    }
+    // Small delay to ensure onclose fires before we connect fresh
+    setTimeout(() => connect(), 0)
+  }, [connect])
+
+  useImperativeHandle(ref, () => ({ resetSession }), [resetSession])
 
   useEffect(() => {
     if (initializedRef.current || !containerRef.current) return
@@ -174,4 +195,4 @@ export function TerminalPanel({ visible }: TerminalPanelProps) {
       style={{ display: visible ? 'block' : 'none' }}
     />
   )
-}
+})

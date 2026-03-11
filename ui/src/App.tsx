@@ -8,7 +8,8 @@ import { FilterBar, applyFilters } from '@/components/FilterBar'
 import type { Filters } from '@/components/FilterBar'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 import { TerminalPanel } from '@/components/TerminalPanel'
-import { PanelRightOpen, Network, TerminalSquare } from 'lucide-react'
+import type { TerminalPanelHandle } from '@/components/TerminalPanel'
+import { PanelRightOpen, Network, TerminalSquare, X, Trash2 } from 'lucide-react'
 
 export interface CardSourceRect {
   top: number
@@ -34,6 +35,7 @@ function App() {
   const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all' })
   const [highlightedBeadId, setHighlightedBeadId] = useState<string | null>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const terminalPanelRef = useRef<TerminalPanelHandle>(null)
   const [terminalOpen, setTerminalOpen] = useState(() => {
     return localStorage.getItem('beads-board-terminal-open') === 'true'
   })
@@ -292,8 +294,29 @@ function App() {
                 }}
               />
             )}
-            <div style={{ height: terminalOpen ? `${terminalHeight}px` : '0px' }} className="shrink-0 overflow-hidden">
-              <TerminalPanel visible={terminalOpen} />
+            <div style={{ height: terminalOpen ? `${terminalHeight}px` : '0px' }} className="shrink-0 overflow-hidden flex flex-col">
+              {terminalOpen && (
+                <div className="flex items-center justify-end gap-1 px-2 py-0.5 bg-[#0d1117] border-b border-border/30 shrink-0">
+                  <button
+                    onClick={() => terminalPanelRef.current?.resetSession()}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Clear session"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTerminalOpen(false)
+                      localStorage.setItem('beads-board-terminal-open', 'false')
+                    }}
+                    className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Hide terminal (Ctrl+`)"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+              <TerminalPanel ref={terminalPanelRef} visible={terminalOpen} />
             </div>
           </div>
 
