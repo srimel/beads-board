@@ -262,41 +262,39 @@ function App() {
               />
             </div>
 
-            {/* Terminal resize edge + panel */}
+            {/* Terminal resize edge + panel — always mounted to preserve session */}
             {terminalOpen && (
-              <>
-                <div
-                  className="h-1 cursor-row-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors border-t border-border"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    const startY = e.clientY
-                    const startHeight = terminalHeight
+              <div
+                className="h-1 cursor-row-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors border-t border-border"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  const startY = e.clientY
+                  const startHeight = terminalHeight
 
-                    const onMouseMove = (e: MouseEvent) => {
-                      const delta = startY - e.clientY
-                      const newHeight = Math.max(100, Math.min(startHeight + delta, window.innerHeight * 0.7))
-                      setTerminalHeight(newHeight)
-                      localStorage.setItem('beads-board-terminal-height', String(newHeight))
-                    }
+                  const onMouseMove = (e: MouseEvent) => {
+                    const delta = startY - e.clientY
+                    const newHeight = Math.max(100, Math.min(startHeight + delta, window.innerHeight * 0.7))
+                    setTerminalHeight(newHeight)
+                    localStorage.setItem('beads-board-terminal-height', String(newHeight))
+                  }
 
-                    const onMouseUp = () => {
-                      document.removeEventListener('mousemove', onMouseMove)
-                      document.removeEventListener('mouseup', onMouseUp)
-                      document.body.style.cursor = ''
-                      document.body.style.userSelect = ''
-                    }
+                  const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove)
+                    document.removeEventListener('mouseup', onMouseUp)
+                    document.body.style.cursor = ''
+                    document.body.style.userSelect = ''
+                  }
 
-                    document.body.style.cursor = 'row-resize'
-                    document.body.style.userSelect = 'none'
-                    document.addEventListener('mousemove', onMouseMove)
-                    document.addEventListener('mouseup', onMouseUp)
-                  }}
-                />
-                <div style={{ height: `${terminalHeight}px` }} className="shrink-0">
-                  <TerminalPanel visible={terminalOpen} />
-                </div>
-              </>
+                  document.body.style.cursor = 'row-resize'
+                  document.body.style.userSelect = 'none'
+                  document.addEventListener('mousemove', onMouseMove)
+                  document.addEventListener('mouseup', onMouseUp)
+                }}
+              />
             )}
+            <div style={{ height: terminalOpen ? `${terminalHeight}px` : '0px' }} className="shrink-0 overflow-hidden">
+              <TerminalPanel visible={terminalOpen} />
+            </div>
           </div>
 
           {/* Draggable splitter */}
