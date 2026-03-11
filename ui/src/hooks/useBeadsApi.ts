@@ -38,6 +38,14 @@ export function useBranches() {
   return usePolling(fetchFn, 30000)  // Branches change less often
 }
 
+export function useGitFileDiff(file: string) {
+  const fetchFn = useCallback(
+    () => file ? fetchJson<{ file: string; diff: string }>(`/api/git-diff?file=${encodeURIComponent(file)}`) : Promise.resolve(null),
+    [file]
+  )
+  return usePolling(fetchFn, 10000)
+}
+
 export function useGitStatus() {
   const fetchFn = useCallback(() => fetchJson<{ status: string; path: string }[]>('/api/git-status'), [])
   return usePolling(fetchFn)

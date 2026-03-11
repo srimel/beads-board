@@ -184,6 +184,39 @@ async function handleRequest(req, res) {
         return { status: match[1].trim(), path: match[2] };
       });
       jsonResponse(res, files);
+    } else if (pathname === '/api/git-diff') {
+      const file = parsed.query.file || '';
+      if (!file || /[;&|`$]/.test(file)) {
+        errorResponse(res, 'Invalid file path', 400);
+        return;
+      }
+      try {
+        // Try staged + unstaged diff first, fall back to untracked file content
+        let diff;
+        try {
+          diff = await execGit(['diff', 'HEAD', '--', file]);
+          if (!diff.trim()) {
+            diff = await execGit(['diff', '--', file]);
+          }
+        } catch {
+          diff = '';
+        }
+        if (!diff.trim()) {
+          // Untracked file — show full content as addition
+          try {
+            const content = require('node:fs').readFileSync(
+              require('node:path').join(PROJECT_DIR, file), 'utf8'
+            );
+            const lines = content.split('\n').map(l => '+' + l).join('\n');
+            diff = `--- /dev/null\n+++ b/${file}\n@@ -0,0 +1,${content.split('\n').length} @@\n${lines}`;
+          } catch {
+            diff = '';
+          }
+        }
+        jsonResponse(res, { file, diff });
+      } catch (err) {
+        errorResponse(res, err.message);
+      }
     } else if (pathname === '/api/branches') {
       const stdout = await execGit(['branch', '--format=%(refname:short)']);
       const branches = stdout.trim().split('\n').filter(Boolean);
