@@ -28,8 +28,8 @@ function useNewlyClosed(done: BeadIssue[]): Set<string> {
   useEffect(() => {
     const currentIds = new Set(doneIds)
 
-    if (prevClosedIds.current === null) {
-      // First load — seed without triggering celebrations
+    if (prevClosedIds.current === null || prevClosedIds.current.size === 0) {
+      // First load or first data arrival — seed without triggering celebrations
       prevClosedIds.current = currentIds
       return
     }
