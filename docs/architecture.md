@@ -18,10 +18,12 @@ beads-board is a read-only dashboard that visualizes Beads issues as a kanban bo
                    ▼
 ┌─────────────────────────────────────────────────┐
 │  Node.js HTTP Server (server/index.js)          │
-│  stdlib only: node:http, node:fs,               │
+│  stdlib: node:http, node:fs,                    │
 │  node:child_process, node:path, node:url        │
+│  deps: node-pty, ws (for integrated terminal)   │
 │                                                 │
 │  ├── API routes → spawn bd/git CLI              │
+│  ├── WS /ws/terminal → node-pty PTY stream      │
 │  └── Static files → serve server/dist/          │
 └──────────────────┬──────────────────────────────┘
                    │ execFile()
@@ -40,17 +42,17 @@ beads-board is a read-only dashboard that visualizes Beads issues as a kanban bo
 
 All data comes from `bd <command> --json` and `git` CLI calls. The Beads CLI is the stable integration surface — we never query Dolt/SQL directly. If the Beads schema changes, `bd` handles it.
 
-### Zero server dependencies
+### Minimal server dependencies
 
-The server uses only Node.js stdlib modules. No Express, no Fastify, no npm install required to run the server. This keeps installation trivial: just `node server/index.js`.
+The core dashboard (kanban + git log) uses only Node.js stdlib modules — no Express, no Fastify. The integrated terminal feature requires two npm dependencies: `node-pty` (PTY spawning) and `ws` (WebSocket server). The dashboard works without these dependencies; the terminal is gracefully unavailable if they are not installed.
 
 ### Pre-built UI assets
 
 The React app builds to `server/dist/` and the built files are committed to the repo. End users never need to run `npm install` or `npm run build` — the server serves the pre-built assets directly.
 
-### Polling over WebSockets
+### Polling for data, WebSockets for terminal
 
-The UI polls API endpoints every 5 seconds. WebSockets would require a dependency or significant custom code. For a local, single-user dev tool, polling is simpler and sufficient.
+The UI polls API endpoints every 5 seconds for issue and git data. The integrated terminal uses a WebSocket connection (`ws` library) to stream PTY I/O in real time via `node-pty`. This hybrid approach keeps the data layer simple while providing a responsive terminal experience.
 
 ## Directory Structure
 

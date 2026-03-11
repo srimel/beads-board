@@ -18,7 +18,11 @@ cd ui && npm install
 cd ..
 ```
 
-The server has zero npm dependencies — no install step needed.
+Install server dependencies (required for the integrated terminal):
+
+```bash
+npm install
+```
 
 ## Development Workflow
 
@@ -48,7 +52,7 @@ This runs `cd ui && npm run build`, which outputs to `server/dist/`. The built a
 
 ### Server
 
-- **Zero npm dependencies.** The server uses only Node.js stdlib (`node:http`, `node:fs`, `node:child_process`, `node:path`, `node:url`). Do not add npm packages.
+- **Minimal npm dependencies.** The server uses Node.js stdlib for the core dashboard. The only npm dependencies are `node-pty` and `ws` for the integrated terminal. Avoid adding new dependencies unless absolutely necessary.
 - **Single file.** All server code lives in `server/index.js`.
 - **CLI over DB.** All data access goes through `bd <command> --json` and `git` commands. Never access Dolt/SQL directly.
 - **Input validation.** Validate all user-supplied parameters (issue IDs, branch names, limits) before passing to CLI commands.

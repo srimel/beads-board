@@ -9,7 +9,8 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 - **Bead ID linking** — Bead IDs in commit messages are highlighted as badges
 - **Dark/light theme** — Toggle between themes, dark by default
 - **Auto-refresh** — Polls for updates every 5 seconds
-- **Zero runtime dependencies** — Server uses only Node.js stdlib
+- **Integrated terminal** — Built-in terminal panel powered by node-pty and xterm.js
+- **Minimal runtime dependencies** — Server uses Node.js stdlib plus `node-pty` and `ws` for the terminal
 
 ## Quick Start
 

@@ -121,6 +121,22 @@ Returns all local branches and the current branch.
 
 ---
 
+### WS /ws/terminal
+
+WebSocket endpoint for the integrated terminal. Connects to a `node-pty` PTY session on the server.
+
+**Protocol:** WebSocket (upgrade from HTTP)
+
+**Messages (client → server):** Raw terminal input (keystrokes) as text frames.
+
+**Messages (server → client):** Raw terminal output as text frames.
+
+The terminal session persists for the lifetime of the WebSocket connection. Closing the connection ends the PTY process.
+
+**Requirements:** `node-pty` and `ws` npm packages must be installed. Returns `501` if dependencies are unavailable.
+
+---
+
 ## Error Responses
 
 All errors return JSON:
