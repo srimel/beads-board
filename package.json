@@ -12,5 +12,19 @@
     "publish:minor": "npm version minor && git push && git push --tags && npm publish --access public",
     "publish:major": "npm version major && git push && git push --tags && npm publish --access public"
   },
+  "keywords": [
+    "beads",
+    "kanban",
+    "dashboard",
+    "git",
+    "cli",
+    "bdui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/srimel/beads-board.git"
+  },
+  "homepage": "https://github.com/srimel/beads-board",
+  "author": "Stuart Rimel <stuart.rimel@gmail.com>",
   "license": "MIT"
 }
