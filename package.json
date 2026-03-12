@@ -1,6 +1,6 @@
 {
   "name": "@citadel-labs/beads-ui",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Kanban dashboard and git log viewer for Beads",
   "bin": {
     "bdui": "bin/beads-board.js"
