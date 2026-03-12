@@ -108,7 +108,7 @@ async function handleRequest(req, res) {
       jsonResponse(res, Array.isArray(blocked) ? blocked.map(normalizeIssue) : blocked);
     } else if (pathname.startsWith('/api/issue/')) {
       const id = pathname.split('/api/issue/')[1];
-      if (!id || !/^[\w-]+$/.test(id)) {
+      if (!id || !/^[\w.\-]+$/.test(id)) {
         errorResponse(res, 'Invalid issue ID', 400);
         return;
       }
