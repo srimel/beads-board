@@ -40,6 +40,33 @@ cd ui && npm run dev
 node server/index.js
 ```
 
+## Testing
+
+```bash
+# Run all tests (server + UI)
+npm test
+
+# Server tests only
+npm run test:server
+
+# UI tests only
+npm run test:ui
+
+# Watch mode (server)
+npm run test:watch
+
+# Watch mode (UI)
+cd ui && npm run test:watch
+```
+
+### TDD Conventions
+
+- **Tests required for:** utilities, hooks, API endpoints, business logic, bug fixes
+- **Tests optional for:** purely visual UI changes (styling, layout), documentation, config
+- **Bug fix workflow:** write a failing test that reproduces the bug → fix → verify test passes
+- **Feature workflow:** write failing test → implement → verify → refactor
+- **PR rule:** no PR merged without passing tests for changed logic
+
 ## Git Workflow
 
 - **NEVER commit or push directly to `main`.** If on main, create a feature branch first. If unsure, ask the user before committing.

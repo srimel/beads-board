@@ -8,6 +8,11 @@
   "scripts": {
     "build": "cd ui && npm run build",
     "start": "node server/index.js",
+    "test": "vitest run && npm --prefix ui test",
+    "test:server": "vitest run",
+    "test:ui": "npm --prefix ui test",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "publish:patch": "npm version patch && git push && git push --tags && npm publish --access public",
     "publish:minor": "npm version minor && git push && git push --tags && npm publish --access public",
     "publish:major": "npm version major && git push && git push --tags && npm publish --access public"
@@ -30,5 +35,9 @@
   "dependencies": {
     "node-pty": "^1.1.0",
     "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
+    "vitest": "^4.0.18"
   }
 }
