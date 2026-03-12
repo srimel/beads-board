@@ -40,6 +40,11 @@ cd ui && npm run dev
 node server/index.js
 ```
 
+## Git Workflow
+
+- **NEVER commit or push directly to `main`.** If on main, create a feature branch first. If unsure, ask the user before committing.
+- **Branch naming**: `<type>/<short-description>` (e.g. `fix/dotted-bead-ids`, `feat/skeleton-loading`).
+
 ## Key Conventions
 
 - **Conventional Commits** — always use the [Conventional Commits](https://www.conventionalcommits.org/) format: `type(scope): description` (e.g. `feat: add celebration animation`, `fix(server): increase bd list limit`). Common types: `feat`, `fix`, `chore`, `refactor`, `docs`, `style`, `test`.

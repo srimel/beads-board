@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XIcon, ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -117,17 +117,23 @@ export function IssueDetailPanel({
   const [loading, setLoading] = useState(false)
   const [navStack, setNavStack] = useState<string[]>([])
   const [currentId, setCurrentId] = useState<string | null>(issueId)
+  const [contentReady, setContentReady] = useState(false)
+  const fetchedDetail = useRef<IssueDetail | null>(null)
 
   // Sync currentId when issueId prop changes (new modal open)
   useEffect(() => {
     setCurrentId(issueId)
     setNavStack([])
+    setContentReady(false)
+    fetchedDetail.current = null
   }, [issueId])
 
   // Reset stack when modal closes
   useEffect(() => {
     if (!open) {
       setNavStack([])
+      setContentReady(false)
+      fetchedDetail.current = null
     }
   }, [open])
 
@@ -136,6 +142,8 @@ export function IssueDetailPanel({
       setNavStack(prev => [...prev, currentId])
     }
     setCurrentId(targetId)
+    setContentReady(false)
+    fetchedDetail.current = null
   }, [currentId])
 
   const navigateBack = useCallback(() => {
@@ -143,9 +151,14 @@ export function IssueDetailPanel({
       const next = [...prev]
       const previousId = next.pop()
       if (previousId) setCurrentId(previousId)
+      setContentReady(false)
+      fetchedDetail.current = null
       return next
     })
   }, [])
+
+  // Track whether entrance animation is done
+  const [animDone, setAnimDone] = useState(false)
 
   useEffect(() => {
     if (!currentId || !open) return
@@ -157,11 +170,30 @@ export function IssueDetailPanel({
       })
       .then(data => {
         const issue = Array.isArray(data) ? data[0] : data
-        setDetail(issue || null)
+        fetchedDetail.current = issue || null
+        // Only show content once both fetch and animation are done
+        if (animDone) {
+          setDetail(issue || null)
+          setContentReady(true)
+        }
       })
-      .catch(() => setDetail(null))
+      .catch(() => {
+        fetchedDetail.current = null
+        if (animDone) {
+          setDetail(null)
+          setContentReady(true)
+        }
+      })
       .finally(() => setLoading(false))
-  }, [currentId, open])
+  }, [currentId, open]) // intentionally exclude animDone to avoid re-fetching
+
+  // When animation completes, reveal content if data is ready
+  useEffect(() => {
+    if (animDone && !loading && fetchedDetail.current !== undefined) {
+      setDetail(fetchedDetail.current)
+      setContentReady(true)
+    }
+  }, [animDone, loading])
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
@@ -175,6 +207,11 @@ export function IssueDetailPanel({
   }, [open, handleKeyDown])
 
   const initialAnim = getInitialAnimState(sourceRect || null)
+
+  // Reset animDone when modal opens/closes
+  useEffect(() => {
+    if (!open) setAnimDone(false)
+  }, [open])
 
   return (
     <AnimatePresence>
@@ -213,6 +250,7 @@ export function IssueDetailPanel({
               transition: { duration: 0.15, ease: [0.4, 0, 1, 1] },
             }}
             transition={modalSpring}
+            onAnimationComplete={() => setAnimDone(true)}
           >
             {/* Back button */}
             {navStack.length > 0 && (
@@ -234,7 +272,7 @@ export function IssueDetailPanel({
               <span className="sr-only">Close</span>
             </button>
 
-            {loading ? (
+            {!contentReady ? (
               <div className="p-5 pb-3 space-y-4 animate-pulse">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="h-4 w-6 rounded bg-muted" />
