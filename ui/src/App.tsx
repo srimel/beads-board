@@ -9,7 +9,8 @@ import type { Filters } from '@/components/FilterBar'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 import { TerminalPanel } from '@/components/TerminalPanel'
 import type { TerminalPanelHandle } from '@/components/TerminalPanel'
-import { PanelRightOpen, Network, TerminalSquare, X, Trash2 } from 'lucide-react'
+import { PanelRightOpen, Network, TerminalSquare, X, Trash2, Settings } from 'lucide-react'
+import { SettingsModal } from '@/components/SettingsModal'
 
 export interface CardSourceRect {
   top: number
@@ -43,6 +44,7 @@ function App() {
     const saved = localStorage.getItem('beads-board-terminal-height')
     return saved ? Number(saved) : 300
   })
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const filteredIssues = applyFilters(issues || [], filters)
   const filteredReady = applyFilters(ready || [], filters)
@@ -153,6 +155,10 @@ function App() {
     document.addEventListener('mouseup', onMouseUp)
   }, [gitLogCollapsed])
 
+  const handleSettingsSave = useCallback((settings: { fontFamily: string }) => {
+    terminalPanelRef.current?.setFontFamily(settings.fontFamily)
+  }, [])
+
   const splitPercentRef = useRef(splitPercent)
   splitPercentRef.current = splitPercent
 
@@ -169,6 +175,10 @@ function App() {
           localStorage.setItem('beads-board-terminal-open', String(next))
           return next
         })
+      }
+      if (e.key === ',' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        setSettingsOpen(prev => !prev)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -214,6 +224,17 @@ function App() {
             title={terminalOpen ? 'Hide terminal (Ctrl+`)' : 'Show terminal (Ctrl+`)'}
           >
             <TerminalSquare className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className={`rounded-md p-2 transition-colors ${
+              settingsOpen
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+            title="Settings (Ctrl+,)"
+          >
+            <Settings className="h-4 w-4" />
           </button>
           <ThemeToggle />
         </div>
@@ -353,6 +374,11 @@ function App() {
         onClose={() => setSelectedIssueId(null)}
         sourceRect={cardSourceRect}
         issues={issues ?? undefined}
+      />
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSave={handleSettingsSave}
       />
     </div>
   )

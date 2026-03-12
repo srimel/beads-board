@@ -9,6 +9,7 @@ interface TerminalPanelProps {
 
 export interface TerminalPanelHandle {
   resetSession: () => void
+  setFontFamily: (fontFamily: string) => void
 }
 
 export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(function TerminalPanel({ visible }, ref) {
@@ -83,16 +84,27 @@ export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>
     setTimeout(() => connect(), 0)
   }, [connect])
 
-  useImperativeHandle(ref, () => ({ resetSession }), [resetSession])
+  const setFontFamily = useCallback((fontFamily: string) => {
+    const terminal = terminalRef.current
+    const fitAddon = fitAddonRef.current
+    if (terminal) {
+      terminal.options.fontFamily = fontFamily || 'Menlo, Monaco, "Courier New", monospace'
+      if (fitAddon) fitAddon.fit()
+    }
+  }, [])
+
+  useImperativeHandle(ref, () => ({ resetSession, setFontFamily }), [resetSession, setFontFamily])
 
   useEffect(() => {
     if (initializedRef.current || !containerRef.current) return
     initializedRef.current = true
 
+    const savedFont = localStorage.getItem('beads-board-terminal-font-family')
+
     const terminal = new Terminal({
       cursorBlink: true,
       fontSize: 13,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily: savedFont || 'Menlo, Monaco, "Courier New", monospace',
       theme: {
         background: '#0d1117',
         foreground: '#e6edf3',
