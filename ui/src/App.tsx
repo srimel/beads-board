@@ -352,6 +352,7 @@ function App() {
         open={selectedIssueId !== null}
         onClose={() => setSelectedIssueId(null)}
         sourceRect={cardSourceRect}
+        issues={issues ?? undefined}
       />
     </div>
   )

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { CardSourceRect } from '@/App'
+import type { BeadIssue } from '@/lib/types'
 
 interface IssueDetail {
   id: string
@@ -102,16 +103,21 @@ function getInitialAnimState(sourceRect: CardSourceRect | null) {
 const modalSpring = { type: 'spring' as const, damping: 28, stiffness: 380, mass: 0.8 }
 const overlayTween = { duration: 0.2, ease: [0.4, 0, 0.2, 1] as const }
 
+// Module-level cache: survives modal close/reopen, cleared on page reload
+const detailCache = new Map<string, IssueDetail>()
+
 export function IssueDetailPanel({
   issueId,
   open,
   onClose,
   sourceRect,
+  issues,
 }: {
   issueId: string | null
   open: boolean
   onClose: () => void
   sourceRect?: CardSourceRect | null
+  issues?: BeadIssue[]
 }) {
   const [detail, setDetail] = useState<IssueDetail | null>(null)
   const [loading, setLoading] = useState(false)
@@ -162,7 +168,35 @@ export function IssueDetailPanel({
 
   useEffect(() => {
     if (!currentId || !open) return
-    setLoading(true)
+
+    // Stale-while-revalidate: show cached or list data instantly, then refresh
+    const cached = detailCache.get(currentId)
+    if (cached) {
+      fetchedDetail.current = cached
+      setDetail(cached)
+      setContentReady(true)
+    } else if (issues) {
+      // Use list data as instant placeholder (partial — no deps/description detail)
+      const listItem = issues.find(i => i.id === currentId)
+      if (listItem) {
+        const partial: IssueDetail = {
+          id: listItem.id,
+          title: listItem.title,
+          status: listItem.status,
+          priority: listItem.priority,
+          issue_type: listItem.issue_type || listItem.type,
+          description: listItem.description,
+          created_at: listItem.created_at,
+          updated_at: listItem.updated_at,
+          parent: listItem.parent,
+        }
+        fetchedDetail.current = partial
+        setDetail(partial)
+        setContentReady(true)
+      }
+    }
+
+    setLoading(!cached && !issues?.find(i => i.id === currentId))
     fetch(`/api/issue/${currentId}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -170,18 +204,20 @@ export function IssueDetailPanel({
       })
       .then(data => {
         const issue = Array.isArray(data) ? data[0] : data
+        if (issue) detailCache.set(currentId, issue)
         fetchedDetail.current = issue || null
-        // Only show content once both fetch and animation are done
         if (animDone) {
           setDetail(issue || null)
           setContentReady(true)
         }
       })
       .catch(() => {
-        fetchedDetail.current = null
-        if (animDone) {
-          setDetail(null)
-          setContentReady(true)
+        if (!cached) {
+          fetchedDetail.current = null
+          if (animDone) {
+            setDetail(null)
+            setContentReady(true)
+          }
         }
       })
       .finally(() => setLoading(false))
