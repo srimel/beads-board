@@ -56,7 +56,9 @@ describe('formatRelativeTime', () => {
   })
 })
 
-// Test sortIssues logic (extracted from KanbanColumn)
+// Test applyFilters logic (from FilterBar)
+import { applyFilters } from '@/components/FilterBar'
+import type { Filters } from '@/components/FilterBar'
 import type { BeadIssue } from '@/lib/types'
 
 type SortMode = 'recent' | 'priority'
@@ -102,5 +104,80 @@ describe('sortIssues', () => {
     const original = [...issues]
     sortIssues(issues, 'priority')
     expect(issues).toEqual(original)
+  })
+})
+
+// applyFilters tests
+const allPass: Filters = { priority: 'all', type: 'all', assignee: 'all', search: '' }
+
+const sampleIssues: BeadIssue[] = [
+  makeIssue({ id: 'bd-aaa', title: 'Fix login bug', type: 'bug', priority: 0, assignee: 'alice', description: 'Users cannot log in' }),
+  makeIssue({ id: 'bd-bbb', title: 'Add dashboard', type: 'feature', priority: 2, assignee: 'bob' }),
+  makeIssue({ id: 'bd-ccc', title: 'Refactor utils', type: 'task', priority: 3, assignee: 'alice' }),
+]
+
+describe('applyFilters', () => {
+  it('returns all issues when no filters are active', () => {
+    expect(applyFilters(sampleIssues, allPass)).toEqual(sampleIssues)
+  })
+
+  it('filters by priority', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, priority: '0' })
+    expect(result.map(i => i.id)).toEqual(['bd-aaa'])
+  })
+
+  it('filters by type', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, type: 'feature' })
+    expect(result.map(i => i.id)).toEqual(['bd-bbb'])
+  })
+
+  it('filters by assignee', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, assignee: 'alice' })
+    expect(result.map(i => i.id)).toEqual(['bd-aaa', 'bd-ccc'])
+  })
+
+  it('searches by title (case-insensitive)', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'login' })
+    expect(result.map(i => i.id)).toEqual(['bd-aaa'])
+  })
+
+  it('searches by id', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'bd-bbb' })
+    expect(result.map(i => i.id)).toEqual(['bd-bbb'])
+  })
+
+  it('searches by description', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'cannot log in' })
+    expect(result.map(i => i.id)).toEqual(['bd-aaa'])
+  })
+
+  it('search is case-insensitive', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'FIX LOGIN' })
+    expect(result.map(i => i.id)).toEqual(['bd-aaa'])
+  })
+
+  it('trims search whitespace', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: '  dashboard  ' })
+    expect(result.map(i => i.id)).toEqual(['bd-bbb'])
+  })
+
+  it('combines multiple filters', () => {
+    const result = applyFilters(sampleIssues, { priority: 'all', type: 'task', assignee: 'alice', search: 'utils' })
+    expect(result.map(i => i.id)).toEqual(['bd-ccc'])
+  })
+
+  it('returns empty when no issues match', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'nonexistent' })
+    expect(result).toEqual([])
+  })
+
+  it('handles issues with no description', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: 'dashboard' })
+    expect(result.map(i => i.id)).toEqual(['bd-bbb'])
+  })
+
+  it('empty search string passes all issues', () => {
+    const result = applyFilters(sampleIssues, { ...allPass, search: '' })
+    expect(result).toEqual(sampleIssues)
   })
 })

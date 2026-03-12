@@ -33,7 +33,7 @@ function App() {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null)
   const [cardSourceRect, setCardSourceRect] = useState<CardSourceRect | null>(null)
   const [showDag, setShowDag] = useState(false)
-  const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all' })
+  const [filters, setFilters] = useState<Filters>({ priority: 'all', type: 'all', assignee: 'all', search: '' })
   const [highlightedBeadId, setHighlightedBeadId] = useState<string | null>(null)
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const terminalPanelRef = useRef<TerminalPanelHandle>(null)
@@ -45,6 +45,8 @@ function App() {
     return saved ? Number(saved) : 300
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [searchInput, setSearchInput] = useState('')
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const filteredIssues = applyFilters(issues || [], filters)
   const filteredReady = applyFilters(ready || [], filters)
@@ -155,6 +157,14 @@ function App() {
     document.addEventListener('mouseup', onMouseUp)
   }, [gitLogCollapsed])
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value)
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => {
+      setFilters(prev => ({ ...prev, search: value }))
+    }, 200)
+  }, [])
+
   const handleSettingsSave = useCallback((settings: { fontFamily: string }) => {
     terminalPanelRef.current?.setFontFamily(settings.fontFamily)
   }, [])
@@ -249,7 +259,7 @@ function App() {
 
       {/* Filter bar */}
       {!showDag && (
-        <FilterBar filters={filters} onFiltersChange={setFilters} issues={issues || []} />
+        <FilterBar filters={filters} onFiltersChange={(f) => { setFilters(f); setSearchInput(f.search) }} issues={issues || []} searchInput={searchInput} onSearchChange={handleSearchChange} />
       )}
 
       {/* Main content */}
@@ -278,6 +288,7 @@ function App() {
             <div className="flex-1 min-h-0 pl-3 pt-3 pb-3 pr-0 overflow-hidden">
               <KanbanBoard
                 issues={filteredIssues}
+                allIssues={issues || []}
                 ready={filteredReady}
                 blocked={filteredBlocked}
                 loading={loading}

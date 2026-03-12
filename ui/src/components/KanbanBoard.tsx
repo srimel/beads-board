@@ -6,6 +6,7 @@ import type { CardSourceRect } from '@/App'
 
 interface KanbanBoardProps {
   issues: BeadIssue[]
+  allIssues?: BeadIssue[]
   ready: BeadIssue[]
   blocked: BeadIssue[]
   loading?: boolean
@@ -16,7 +17,7 @@ interface KanbanBoardProps {
  * Tracks which issue IDs just moved to "closed" status between poll cycles.
  * Uses a stable key derived from sorted IDs to avoid spurious effect runs.
  */
-function useNewlyClosed(done: BeadIssue[]): Set<string> {
+export function useNewlyClosed(done: BeadIssue[]): Set<string> {
   // Create a stable key from the sorted set of closed IDs so the effect
   // only runs when the actual set of closed issues changes, not on every render.
   const doneIds = useMemo(() => done.map(i => i.id).sort(), [done])
@@ -54,12 +55,14 @@ function useNewlyClosed(done: BeadIssue[]): Set<string> {
   return newlyClosed
 }
 
-export function KanbanBoard({ issues, ready, blocked: _, loading, onIssueClick }: KanbanBoardProps) {
+export function KanbanBoard({ issues, allIssues, ready, blocked: _, loading, onIssueClick }: KanbanBoardProps) {
   const readyIds = new Set(ready.map(i => i.id))
   const inProgress = issues.filter(i => i.status === 'in_progress')
   const done = issues.filter(i => i.status === 'closed')
 
-  const newlyClosed = useNewlyClosed(done)
+  // Track celebrations against unfiltered issues so filter changes don't trigger false positives
+  const allDone = useMemo(() => (allIssues || issues).filter(i => i.status === 'closed'), [allIssues, issues])
+  const newlyClosed = useNewlyClosed(allDone)
 
   // Backlog: everything that isn't ready, in_progress, or closed
   const backlog = issues.filter(i =>

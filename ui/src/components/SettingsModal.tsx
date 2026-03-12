@@ -71,7 +71,7 @@ export function SettingsModal({ open, onClose, onSave }: SettingsModalProps) {
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button className="bg-primary/80 text-primary-foreground hover:bg-primary" onClick={handleSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
