@@ -5,6 +5,7 @@
 .beads-board.pid
 node_modules/
 docs/internal/
+docs/superpowers/
 
 # Local tooling
 .claude/
