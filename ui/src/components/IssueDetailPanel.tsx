@@ -235,8 +235,22 @@ export function IssueDetailPanel({
             </button>
 
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <span className="text-sm text-muted-foreground animate-pulse">Loading...</span>
+              <div className="p-5 pb-3 space-y-4 animate-pulse">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="h-4 w-6 rounded bg-muted" />
+                  <div className="h-4 w-24 rounded bg-muted" />
+                  <div className="h-5 w-12 rounded-full bg-muted" />
+                  <div className="h-5 w-16 rounded-full bg-muted" />
+                </div>
+                <div className="h-5 w-3/4 rounded bg-muted" />
+                <div className="h-4 w-1/3 rounded bg-muted" />
+                <Separator />
+                <div className="space-y-2 pt-2">
+                  <div className="h-3 w-20 rounded bg-muted" />
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-full rounded bg-muted" />
+                  <div className="h-4 w-2/3 rounded bg-muted" />
+                </div>
               </div>
             ) : detail ? (
               <ScrollArea className="max-h-[80vh]">
