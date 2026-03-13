@@ -222,7 +222,7 @@ function createRequestHandler(projectDir, distDir) {
           errorResponse(res, err.message);
         }
       } else if (pathname === '/api/file-content') {
-        const relPath = parsed.query.path || '';
+        const relPath = parsedUrl.searchParams.get('path') || '';
         if (!relPath || relPath.includes('..') || path.isAbsolute(relPath)) {
           errorResponse(res, 'Invalid path', 400);
           return;
@@ -270,7 +270,7 @@ function createRequestHandler(projectDir, distDir) {
           }
         }
       } else if (pathname === '/api/files') {
-        const relPath = parsed.query.path || '';
+        const relPath = parsedUrl.searchParams.get('path') || '';
         // Block path traversal
         if (relPath.includes('..') || path.isAbsolute(relPath)) {
           errorResponse(res, 'Invalid path', 400);
