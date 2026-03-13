@@ -10,3 +10,4 @@ docs/superpowers/
 # Local tooling
 .claude/
 .playwright-mcp/
+coverage/
