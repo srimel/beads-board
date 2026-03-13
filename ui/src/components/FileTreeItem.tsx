@@ -76,6 +76,7 @@ interface FileTreeItemProps {
   entry: FileEntry
   depth: number
   onDirectoryToggle: (path: string) => void
+  onFileClick?: (filePath: string) => void
   expandedDirs: Set<string>
   dirCache: Record<string, FileEntry[]>
   loadingDirs: Set<string>
@@ -85,6 +86,7 @@ export function FileTreeItem({
   entry,
   depth,
   onDirectoryToggle,
+  onFileClick,
   expandedDirs,
   dirCache,
   loadingDirs,
@@ -96,8 +98,10 @@ export function FileTreeItem({
   const handleClick = useCallback(() => {
     if (isDir) {
       onDirectoryToggle(entry.path)
+    } else {
+      onFileClick?.(entry.path)
     }
-  }, [isDir, entry.path, onDirectoryToggle])
+  }, [isDir, entry.path, onDirectoryToggle, onFileClick])
 
   const iconType = isDir ? null : getFileIconType(entry.name)
   const FileIcon = iconType ? (ICON_MAP[iconType] || File) : null
@@ -164,6 +168,7 @@ export function FileTreeItem({
                 entry={child}
                 depth={depth + 1}
                 onDirectoryToggle={onDirectoryToggle}
+                onFileClick={onFileClick}
                 expandedDirs={expandedDirs}
                 dirCache={dirCache}
                 loadingDirs={loadingDirs}

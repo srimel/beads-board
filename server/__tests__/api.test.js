@@ -170,6 +170,32 @@ describe('GET /api/files', () => {
     }
   });
 
+  it('returns file content for a valid file path', async () => {
+    const res = await get('/api/file-content?path=package.json');
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveProperty('path', 'package.json');
+    expect(res.data).toHaveProperty('content');
+    expect(res.data).toHaveProperty('language');
+    expect(typeof res.data.content).toBe('string');
+    expect(res.data.content).toContain('beads');
+  });
+
+  it('returns 400 for path traversal in file-content', async () => {
+    const res = await get('/api/file-content?path=../../etc/passwd');
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 404 for non-existent file', async () => {
+    const res = await get('/api/file-content?path=does-not-exist.txt');
+    expect(res.status).toBe(404);
+  });
+
+  it('returns correct language for known extensions', async () => {
+    const res = await get('/api/file-content?path=server/handlers.js');
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveProperty('language', 'javascript');
+  });
+
   it('excludes hidden files and common ignored directories', async () => {
     const res = await get('/api/files');
     expect(res.status).toBe(200);

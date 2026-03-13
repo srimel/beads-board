@@ -222,6 +222,54 @@ function createRequestHandler(projectDir, distDir) {
         } catch (err) {
           errorResponse(res, err.message);
         }
+      } else if (pathname === '/api/file-content') {
+        const relPath = parsed.query.path || '';
+        if (!relPath || relPath.includes('..') || path.isAbsolute(relPath)) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const targetFile = path.join(projectDir, relPath);
+        const resolved = path.resolve(targetFile);
+        if (!resolved.startsWith(path.resolve(projectDir))) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const EXT_TO_LANG = {
+          '.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+          '.ts': 'typescript', '.tsx': 'tsx', '.jsx': 'jsx',
+          '.json': 'json', '.jsonc': 'jsonc', '.jsonl': 'jsonl',
+          '.md': 'markdown', '.mdx': 'mdx',
+          '.html': 'html', '.htm': 'html',
+          '.css': 'css', '.scss': 'scss', '.sass': 'sass',
+          '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust',
+          '.java': 'java', '.kt': 'kotlin', '.kts': 'kotlin',
+          '.c': 'c', '.cpp': 'cpp', '.cc': 'cpp', '.h': 'c', '.hpp': 'cpp',
+          '.cs': 'csharp',
+          '.sh': 'bash', '.bash': 'bash', '.zsh': 'bash',
+          '.ps1': 'powershell', '.psm1': 'powershell',
+          '.yml': 'yaml', '.yaml': 'yaml', '.toml': 'toml', '.ini': 'ini',
+          '.xml': 'xml', '.svg': 'xml', '.sql': 'sql',
+          '.dockerfile': 'dockerfile',
+          '.graphql': 'graphql', '.gql': 'graphql',
+          '.tex': 'latex', '.latex': 'latex',
+          '.swift': 'swift', '.zig': 'zig', '.php': 'php',
+          '.vue': 'vue', '.svelte': 'svelte',
+          '.env': 'dotenv',
+          '.mermaid': 'mermaid', '.mmd': 'mermaid',
+          '.kusto': 'kusto', '.kql': 'kusto',
+        };
+        try {
+          const content = fs.readFileSync(resolved, 'utf8');
+          const ext = path.extname(relPath).toLowerCase();
+          const language = EXT_TO_LANG[ext] || 'text';
+          jsonResponse(res, { path: relPath, content, language });
+        } catch (err) {
+          if (err.code === 'ENOENT' || err.code === 'EISDIR') {
+            errorResponse(res, 'File not found', 404);
+          } else {
+            errorResponse(res, err.message);
+          }
+        }
       } else if (pathname === '/api/files') {
         const relPath = parsed.query.path || '';
         // Block path traversal
