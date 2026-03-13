@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const { execFile } = require('node:child_process');
 const path = require('node:path');
-const url = require('node:url');
 
 // ---------------------------------------------------------------------------
 // MIME types
@@ -87,8 +86,8 @@ function errorResponse(res, message, status = 500) {
 
 function createRequestHandler(projectDir, distDir) {
   return async function handleRequest(req, res) {
-    const parsed = url.parse(req.url, true);
-    const pathname = parsed.pathname;
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const pathname = parsedUrl.pathname;
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
@@ -119,8 +118,8 @@ function createRequestHandler(projectDir, distDir) {
         const issue = await execBd(['show', id], projectDir);
         jsonResponse(res, issue);
       } else if (pathname === '/api/git-log') {
-        const branch = parsed.query.branch || '';
-        const limit = Math.min(Math.max(parseInt(parsed.query.limit || '50', 10) || 50, 1), 500);
+        const branch = parsedUrl.searchParams.get('branch') || '';
+        const limit = Math.min(Math.max(parseInt(parsedUrl.searchParams.get('limit') || '50', 10) || 50, 1), 500);
         if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
           errorResponse(res, 'Invalid branch name', 400);
           return;
@@ -190,7 +189,7 @@ function createRequestHandler(projectDir, distDir) {
         });
         jsonResponse(res, files);
       } else if (pathname === '/api/git-diff') {
-        const file = parsed.query.file || '';
+        const file = parsedUrl.searchParams.get('file') || '';
         if (!file || /[;&|`$]/.test(file)) {
           errorResponse(res, 'Invalid file path', 400);
           return;
