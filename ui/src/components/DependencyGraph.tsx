@@ -37,6 +37,42 @@ const PRIORITY_COLORS: Record<number, string> = {
 const DEFAULT_COLOR = { bg: '#1c1c1c', border: '#484f58', text: '#8b949e' }
 const DEFAULT_COLOR_LIGHT = { bg: '#f6f8fa', border: '#d0d7de', text: '#57606a' }
 
+/**
+ * Calculate the new transform after a zoom (wheel) event.
+ * Zooms toward the mouse cursor position so the point under the cursor stays fixed.
+ */
+export function calcZoomTransform(
+  prev: { x: number; y: number; scale: number },
+  deltaY: number,
+  mouseX: number,
+  mouseY: number,
+): { x: number; y: number; scale: number } {
+  const factor = deltaY > 0 ? 0.9 : 1.1
+  const newScale = Math.min(3, Math.max(0.1, prev.scale * factor))
+  return {
+    scale: newScale,
+    x: mouseX - (mouseX - prev.x) * (newScale / prev.scale),
+    y: mouseY - (mouseY - prev.y) * (newScale / prev.scale),
+  }
+}
+
+/**
+ * Calculate the new transform after a pan (drag) event.
+ * Uses the pan start position and current mouse position to compute offset.
+ */
+export function calcPanTransform(
+  currentScale: number,
+  panStartMouse: { x: number; y: number },
+  panStartTransform: { x: number; y: number },
+  currentMouse: { x: number; y: number },
+): { x: number; y: number; scale: number } {
+  return {
+    scale: currentScale,
+    x: panStartTransform.x + (currentMouse.x - panStartMouse.x),
+    y: panStartTransform.y + (currentMouse.y - panStartMouse.y),
+  }
+}
+
 const NODE_WIDTH = 200
 const NODE_HEIGHT = 62
 const PADDING = 40
@@ -169,7 +205,7 @@ function getTransitiveDependents(issueId: string, dependentsMap: Map<string, str
   return visited
 }
 
-function buildSmoothPath(points: Array<{ x: number; y: number }>): string {
+export function buildSmoothPath(points: Array<{ x: number; y: number }>): string {
   if (points.length < 2) return ''
   if (points.length === 2) {
     return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
@@ -201,7 +237,8 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
-  const [isPanning, setIsPanning] = useState(false)
+  const isPanningRef = useRef(false)
+  const [isPanningState, setIsPanningState] = useState(false)
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 })
   const [isDark, setIsDark] = useState(true)
 
@@ -261,41 +298,48 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     setTransform({ x, y, scale })
   }, [layout])
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? 0.9 : 1.1
-    setTransform(prev => {
-      const newScale = Math.min(3, Math.max(0.1, prev.scale * delta))
-      const rect = containerRef.current?.getBoundingClientRect()
-      if (!rect) return { ...prev, scale: newScale }
+  // Use native wheel listener with { passive: false } so preventDefault() works.
+  // React's onWheel registers as passive in modern browsers, silently ignoring preventDefault().
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
       const mx = e.clientX - rect.left
       const my = e.clientY - rect.top
-      return {
-        scale: newScale,
-        x: mx - (mx - prev.x) * (newScale / prev.scale),
-        y: my - (my - prev.y) * (newScale / prev.scale),
-      }
-    })
+      setTransform(prev => calcZoomTransform(prev, e.deltaY, mx, my))
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
   }, [])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     if ((e.target as SVGElement).closest('.dag-node')) return
-    setIsPanning(true)
-    panStart.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y }
-  }, [transform])
+    isPanningRef.current = true
+    setIsPanningState(true)
+    setTransform(prev => {
+      panStart.current = { x: e.clientX, y: e.clientY, tx: prev.x, ty: prev.y }
+      return prev
+    })
+  }, [])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isPanning) return
-    setTransform({
-      ...transform,
-      x: panStart.current.tx + (e.clientX - panStart.current.x),
-      y: panStart.current.ty + (e.clientY - panStart.current.y),
-    })
-  }, [isPanning, transform])
+    if (!isPanningRef.current) return
+    setTransform(prev => calcPanTransform(
+      prev.scale,
+      { x: panStart.current.x, y: panStart.current.y },
+      { x: panStart.current.tx, y: panStart.current.ty },
+      { x: e.clientX, y: e.clientY },
+    ))
+  }, [])
 
   const handleMouseUp = useCallback(() => {
-    setIsPanning(false)
+    isPanningRef.current = false
+    setIsPanningState(false)
   }, [])
 
   const handleNodeClick = useCallback((id: string) => {
@@ -321,8 +365,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     <div
       ref={containerRef}
       className="w-full h-full relative overflow-hidden"
-      style={{ background: bgColor, cursor: isPanning ? 'grabbing' : 'grab' }}
-      onWheel={handleWheel}
+      style={{ background: bgColor, cursor: isPanningState ? 'grabbing' : 'grab' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
