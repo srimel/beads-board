@@ -235,7 +235,6 @@ function truncateText(text: string, maxLen: number): string {
 
 export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
   const isPanningRef = useRef(false)
@@ -279,8 +278,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
 
   const layout = useMemo(() => computeLayout(issues), [issues])
 
-  // selectedId (click-locked) takes priority over hoveredId
-  const activeId = selectedId ?? hoveredId
+  const activeId = hoveredId
   const highlightedIds = useMemo(() => {
     if (!activeId) return null
     const deps = getTransitiveDeps(activeId, issueMap)
@@ -352,15 +350,11 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
   }, [])
 
   const handleMouseUp = useCallback(() => {
-    if (isPanningRef.current && !didDragRef.current) {
-      setSelectedId(null)
-    }
     isPanningRef.current = false
     setIsPanningState(false)
   }, [])
 
   const handleNodeClick = useCallback((id: string) => {
-    setSelectedId(prev => prev === id ? null : id)
     onNodeClick?.(id)
   }, [onNodeClick])
 
