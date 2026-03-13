@@ -165,11 +165,13 @@ describe('API endpoints', () => {
     expect(res.data).toHaveProperty('diff');
   });
 
-  it('does not use deprecated url.parse()', async () => {
-    // Verify the handlers module does not import or use url.parse
+  it('does not use deprecated url.parse() in any server file', async () => {
     const fs = await import('node:fs');
-    const handlersPath = path.join(__dirname, '..', 'handlers.js');
-    const source = fs.readFileSync(handlersPath, 'utf8');
-    expect(source).not.toMatch(/url\.parse\s*\(/);
+    const serverFiles = ['handlers.js', 'terminal.js', 'index.js'];
+    for (const file of serverFiles) {
+      const filePath = path.join(__dirname, '..', file);
+      const source = fs.readFileSync(filePath, 'utf8');
+      expect(source).not.toMatch(/url\.parse\s*\(/);
+    }
   });
 });

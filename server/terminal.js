@@ -1,5 +1,3 @@
-const url = require('node:url');
-
 let pty, WebSocket;
 try {
   pty = require('node-pty');
@@ -27,8 +25,8 @@ function attachTerminal(httpServer, projectDir) {
   const wss = new WebSocket.Server({ noServer: true });
 
   httpServer.on('upgrade', (req, socket, head) => {
-    const parsed = url.parse(req.url);
-    if (parsed.pathname !== '/ws/terminal') {
+    const { pathname } = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (pathname !== '/ws/terminal') {
       socket.destroy();
       return;
     }
