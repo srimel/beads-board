@@ -120,3 +120,61 @@ describe('API endpoints', () => {
     expect(res.headers.get('content-type')).toContain('text/html');
   });
 });
+
+describe('GET /api/files', () => {
+  it('returns directory listing for project root', async () => {
+    const res = await get('/api/files');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    // Project root should have package.json and server/ directory
+    const names = res.data.map(e => e.name);
+    expect(names).toContain('package.json');
+    expect(names).toContain('server');
+    // Each entry should have name, type, and path
+    const serverEntry = res.data.find(e => e.name === 'server');
+    expect(serverEntry).toHaveProperty('type', 'directory');
+    expect(serverEntry).toHaveProperty('path', 'server');
+  });
+
+  it('returns directory listing for a subdirectory', async () => {
+    const res = await get('/api/files?path=server');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    const names = res.data.map(e => e.name);
+    expect(names).toContain('index.js');
+    expect(names).toContain('handlers.js');
+  });
+
+  it('returns 400 for path traversal attempts', async () => {
+    const res = await get('/api/files?path=../../../etc');
+    expect(res.status).toBe(400);
+    expect(res.data).toHaveProperty('error');
+  });
+
+  it('returns 404 for non-existent directory', async () => {
+    const res = await get('/api/files?path=nonexistent-dir-xyz');
+    expect(res.status).toBe(404);
+    expect(res.data).toHaveProperty('error');
+  });
+
+  it('sorts directories before files', async () => {
+    const res = await get('/api/files');
+    expect(res.status).toBe(200);
+    const dirs = res.data.filter(e => e.type === 'directory');
+    const files = res.data.filter(e => e.type === 'file');
+    // All directories should come before files in the array
+    if (dirs.length > 0 && files.length > 0) {
+      const lastDirIdx = res.data.lastIndexOf(dirs[dirs.length - 1]);
+      const firstFileIdx = res.data.indexOf(files[0]);
+      expect(lastDirIdx).toBeLessThan(firstFileIdx);
+    }
+  });
+
+  it('excludes hidden files and common ignored directories', async () => {
+    const res = await get('/api/files');
+    expect(res.status).toBe(200);
+    const names = res.data.map(e => e.name);
+    expect(names).not.toContain('.git');
+    expect(names).not.toContain('node_modules');
+  });
+});

@@ -9,7 +9,8 @@ import type { Filters } from '@/components/FilterBar'
 import { useIssues, useReady, useBlocked, useProject } from '@/hooks/useBeadsApi'
 import { TerminalPanel } from '@/components/TerminalPanel'
 import type { TerminalPanelHandle } from '@/components/TerminalPanel'
-import { PanelRightOpen, Network, TerminalSquare, X, Trash2, Settings } from 'lucide-react'
+import { FileExplorer } from '@/components/FileExplorer'
+import { PanelRightOpen, FolderTree, Network, TerminalSquare, X, Trash2, Settings } from 'lucide-react'
 import { SettingsModal } from '@/components/SettingsModal'
 
 export interface CardSourceRect {
@@ -45,6 +46,13 @@ function App() {
     return saved ? Number(saved) : 300
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [fileExplorerOpen, setFileExplorerOpen] = useState(() => {
+    return localStorage.getItem('beads-board-explorer-open') === 'true'
+  })
+  const [fileExplorerWidth, setFileExplorerWidth] = useState(() => {
+    const saved = localStorage.getItem('beads-board-explorer-width')
+    return saved ? Number(saved) : 240
+  })
   const [searchInput, setSearchInput] = useState('')
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -165,6 +173,14 @@ function App() {
     }, 200)
   }, [])
 
+  const toggleFileExplorer = useCallback(() => {
+    setFileExplorerOpen(prev => {
+      const next = !prev
+      localStorage.setItem('beads-board-explorer-open', String(next))
+      return next
+    })
+  }, [])
+
   const handleSettingsSave = useCallback((settings: { fontFamily: string }) => {
     terminalPanelRef.current?.setFontFamily(settings.fontFamily)
   }, [])
@@ -190,6 +206,14 @@ function App() {
         e.preventDefault()
         setSettingsOpen(prev => !prev)
       }
+      if (e.key === 'b' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        setFileExplorerOpen(prev => {
+          const next = !prev
+          localStorage.setItem('beads-board-explorer-open', String(next))
+          return next
+        })
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
@@ -209,6 +233,17 @@ function App() {
           {loading && (
             <span className="text-xs text-muted-foreground animate-pulse">refreshing...</span>
           )}
+          <button
+            onClick={toggleFileExplorer}
+            className={`rounded-md p-2 transition-colors ${
+              fileExplorerOpen
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+            title={fileExplorerOpen ? 'Hide explorer (Ctrl+B)' : 'Show explorer (Ctrl+B)'}
+          >
+            <FolderTree className="h-4 w-4" />
+          </button>
           <button
             onClick={() => setShowDag(prev => !prev)}
             className={`rounded-md p-2 transition-colors ${
@@ -274,7 +309,49 @@ function App() {
           />
         </main>
       ) : (
-        <main ref={mainRef} className="flex flex-1 min-h-0">
+        <main className="flex flex-1 min-h-0">
+          {/* File Explorer */}
+          {fileExplorerOpen && (
+            <>
+              <div
+                style={{ width: `${fileExplorerWidth}px` }}
+                className="shrink-0 overflow-hidden transition-[width] duration-200"
+              >
+                <FileExplorer onCollapse={toggleFileExplorer} />
+              </div>
+              {/* Explorer resize handle */}
+              <div
+                className="w-1 cursor-col-resize hover:bg-border active:bg-primary/50 shrink-0 transition-colors"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  const startX = e.clientX
+                  const startWidth = fileExplorerWidth
+
+                  const onMouseMove = (e: MouseEvent) => {
+                    const delta = e.clientX - startX
+                    const newWidth = Math.max(150, Math.min(startWidth + delta, 500))
+                    setFileExplorerWidth(newWidth)
+                  }
+
+                  const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove)
+                    document.removeEventListener('mouseup', onMouseUp)
+                    document.body.style.cursor = ''
+                    document.body.style.userSelect = ''
+                    localStorage.setItem('beads-board-explorer-width', String(fileExplorerWidth))
+                  }
+
+                  document.body.style.cursor = 'col-resize'
+                  document.body.style.userSelect = 'none'
+                  document.addEventListener('mousemove', onMouseMove)
+                  document.addEventListener('mouseup', onMouseUp)
+                }}
+              />
+            </>
+          )}
+
+          {/* Kanban + Git Log wrapper — fills remaining space */}
+          <div ref={mainRef} className="flex flex-1 min-w-0">
           {/* Kanban + Terminal */}
           <div
             ref={kanbanRef}
@@ -377,6 +454,7 @@ function App() {
               <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} highlightedBeadId={highlightedBeadId} />
             </div>
           )}
+          </div>{/* end kanban+git wrapper */}
         </main>
       )}
       <IssueDetailPanel

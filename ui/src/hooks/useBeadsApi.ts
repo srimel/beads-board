@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { usePolling } from './usePolling'
-import type { BeadIssue, GitCommit, BranchesResponse } from '@/lib/types'
+import type { BeadIssue, GitCommit, BranchesResponse, FileEntry } from '@/lib/types'
 
 const API_BASE = ''  // Same origin
 
@@ -54,4 +54,12 @@ export function useGitStatus() {
 export function useProject() {
   const fetchFn = useCallback(() => fetchJson<{ name: string }>('/api/project'), [])
   return usePolling(fetchFn, 60000)  // Project name rarely changes
+}
+
+export function useFiles(dirPath: string) {
+  const fetchFn = useCallback(
+    () => fetchJson<FileEntry[]>(`/api/files?path=${encodeURIComponent(dirPath)}`),
+    [dirPath]
+  )
+  return usePolling(fetchFn, 30000)  // Files change less frequently
 }

@@ -222,6 +222,46 @@ function createRequestHandler(projectDir, distDir) {
         } catch (err) {
           errorResponse(res, err.message);
         }
+      } else if (pathname === '/api/files') {
+        const relPath = parsed.query.path || '';
+        // Block path traversal
+        if (relPath.includes('..') || path.isAbsolute(relPath)) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const targetDir = path.join(projectDir, relPath);
+        const resolved = path.resolve(targetDir);
+        if (!resolved.startsWith(path.resolve(projectDir))) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const IGNORED = new Set(['.git', 'node_modules', '.beads', '.claude', '.playwright-mcp', 'coverage', '.vscode']);
+        try {
+          const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+          const results = [];
+          for (const entry of entries) {
+            // Skip hidden files/dirs and common ignored directories
+            if (entry.name.startsWith('.') || IGNORED.has(entry.name)) continue;
+            const entryPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+            results.push({
+              name: entry.name,
+              type: entry.isDirectory() ? 'directory' : 'file',
+              path: entryPath,
+            });
+          }
+          // Sort: directories first, then alphabetically within each group
+          results.sort((a, b) => {
+            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+          });
+          jsonResponse(res, results);
+        } catch (err) {
+          if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
+            errorResponse(res, 'Directory not found', 404);
+          } else {
+            errorResponse(res, err.message);
+          }
+        }
       } else if (pathname === '/api/branches') {
         const stdout = await execGit(['branch', '--format=%(refname:short)'], projectDir);
         const branches = stdout.trim().split('\n').filter(Boolean);

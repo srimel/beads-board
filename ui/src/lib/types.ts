@@ -31,3 +31,9 @@ export interface BranchesResponse {
   branches: string[]
   current: string
 }
+
+export interface FileEntry {
+  name: string
+  type: 'file' | 'directory'
+  path: string
+}
