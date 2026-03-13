@@ -321,10 +321,13 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     return () => el.removeEventListener('wheel', handleWheel)
   }, [])
 
+  const didDragRef = useRef(false)
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     if ((e.target as SVGElement).closest('.dag-node')) return
     isPanningRef.current = true
+    didDragRef.current = false
     setIsPanningState(true)
     setTransform(prev => {
       panStart.current = { x: e.clientX, y: e.clientY, tx: prev.x, ty: prev.y }
@@ -334,6 +337,9 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isPanningRef.current) return
+    const dx = e.clientX - panStart.current.x
+    const dy = e.clientY - panStart.current.y
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDragRef.current = true
     setTransform(prev => calcPanTransform(
       prev.scale,
       { x: panStart.current.x, y: panStart.current.y },
@@ -343,6 +349,9 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
   }, [])
 
   const handleMouseUp = useCallback(() => {
+    if (isPanningRef.current && !didDragRef.current) {
+      setSelectedId(null)
+    }
     isPanningRef.current = false
     setIsPanningState(false)
   }, [])
