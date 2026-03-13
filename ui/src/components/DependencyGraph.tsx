@@ -236,6 +236,7 @@ function truncateText(text: string, maxLen: number): string {
 export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 })
   const isPanningRef = useRef(false)
   const [isPanningState, setIsPanningState] = useState(false)
@@ -278,12 +279,14 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
 
   const layout = useMemo(() => computeLayout(issues), [issues])
 
+  // selectedId (click-locked) takes priority over hoveredId
+  const activeId = selectedId ?? hoveredId
   const highlightedIds = useMemo(() => {
-    if (!selectedId) return null
-    const deps = getTransitiveDeps(selectedId, issueMap)
-    const dependents = getTransitiveDependents(selectedId, dependentsMap)
+    if (!activeId) return null
+    const deps = getTransitiveDeps(activeId, issueMap)
+    const dependents = getTransitiveDependents(activeId, dependentsMap)
     return new Set([...deps, ...dependents])
-  }, [selectedId, issueMap, dependentsMap])
+  }, [activeId, issueMap, dependentsMap])
 
   // Fit to view only on initial mount or when the number of nodes changes
   // (not on every poll, which would reset user's zoom/pan)
@@ -360,6 +363,10 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     setSelectedId(prev => prev === id ? null : id)
     onNodeClick?.(id)
   }, [onNodeClick])
+
+  const handleNodeHover = useCallback((id: string | null) => {
+    setHoveredId(id)
+  }, [])
 
   const bgColor = isDark ? '#0d1117' : '#ffffff'
   const gridColor = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)'
@@ -469,7 +476,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
           {layout.nodes.map(node => {
             const status = node.issue.status || 'open'
             const colors = colorMap[status] || defaultColor
-            const isSelected = selectedId === node.id
+            const isSelected = activeId === node.id
             const isHighlighted = highlightedIds ? highlightedIds.has(node.id) : false
             const isDimmed = highlightedIds !== null && !isHighlighted
             const opacity = isDimmed ? 0.2 : 1
@@ -481,6 +488,8 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
                 className="dag-node"
                 transform={`translate(${node.x - NODE_WIDTH / 2},${node.y - NODE_HEIGHT / 2})`}
                 onClick={() => handleNodeClick(node.id)}
+                onMouseEnter={() => handleNodeHover(node.id)}
+                onMouseLeave={() => handleNodeHover(null)}
                 style={{
                   cursor: 'pointer',
                   opacity,
