@@ -285,9 +285,14 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     return new Set([...deps, ...dependents])
   }, [selectedId, issueMap, dependentsMap])
 
-  // Fit to view on mount / issues change
+  // Fit to view only on initial mount or when the number of nodes changes
+  // (not on every poll, which would reset user's zoom/pan)
+  const nodeCount = layout.nodes.length
+  const prevNodeCountRef = useRef<number | null>(null)
   useEffect(() => {
     if (!containerRef.current) return
+    if (prevNodeCountRef.current !== null && prevNodeCountRef.current === nodeCount) return
+    prevNodeCountRef.current = nodeCount
     const { width: gw, height: gh } = layout
     const cw = containerRef.current.clientWidth
     const ch = containerRef.current.clientHeight
@@ -296,7 +301,7 @@ export function DependencyGraph({ issues, onNodeClick }: DependencyGraphProps) {
     const x = (cw - gw * scale) / 2
     const y = (ch - gh * scale) / 2
     setTransform({ x, y, scale })
-  }, [layout])
+  }, [layout, nodeCount])
 
   // Use native wheel listener with { passive: false } so preventDefault() works.
   // React's onWheel registers as passive in modern browsers, silently ignoring preventDefault().
