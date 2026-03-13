@@ -14,7 +14,6 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 - **Auto-refresh** — Polls for updates every 5 seconds
 - **Integrated terminal** — Built-in terminal panel powered by node-pty and xterm.js
 - **Settings** — Configurable terminal font-family via settings modal
-- **Minimal runtime dependencies** — Server uses Node.js stdlib plus `node-pty` and `ws` for the terminal
 
 ## Quick Start
 
