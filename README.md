@@ -5,11 +5,15 @@ A minimal kanban dashboard and git log viewer for [Beads](https://github.com/ste
 ## Features
 
 - **Kanban board** — Issues organized by status: Ready, In Progress, Blocked, Done
-- **Git log** — Scrollable commit history with branch selector
-- **Bead ID linking** — Bead IDs in commit messages are highlighted as badges
+- **Git log** — Scrollable commit history with branch selector and diff viewer
+- **File explorer** — Browse project files with syntax-highlighted file viewer (40+ languages via Shiki)
+- **Dependency graph** — Interactive DAG visualization with hover highlighting, zoom, and pan
+- **Bead ID linking** — Bead IDs in commit messages are highlighted as clickable badges
+- **Search and filtering** — Filter issues by priority, type, assignee, or free-text search
 - **Dark/light theme** — Toggle between themes, dark by default
 - **Auto-refresh** — Polls for updates every 5 seconds
 - **Integrated terminal** — Built-in terminal panel powered by node-pty and xterm.js
+- **Settings** — Configurable terminal font-family via settings modal
 - **Minimal runtime dependencies** — Server uses Node.js stdlib plus `node-pty` and `ws` for the terminal
 
 ## Quick Start
