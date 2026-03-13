@@ -221,6 +221,94 @@ function createRequestHandler(projectDir, distDir) {
         } catch (err) {
           errorResponse(res, err.message);
         }
+      } else if (pathname === '/api/file-content') {
+        const relPath = parsed.query.path || '';
+        if (!relPath || relPath.includes('..') || path.isAbsolute(relPath)) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const targetFile = path.join(projectDir, relPath);
+        const resolved = path.resolve(targetFile);
+        if (!resolved.startsWith(path.resolve(projectDir))) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const EXT_TO_LANG = {
+          '.js': 'javascript', '.mjs': 'javascript', '.cjs': 'javascript',
+          '.ts': 'typescript', '.tsx': 'tsx', '.jsx': 'jsx',
+          '.json': 'json', '.jsonc': 'jsonc', '.jsonl': 'jsonl',
+          '.md': 'markdown', '.mdx': 'mdx',
+          '.html': 'html', '.htm': 'html',
+          '.css': 'css', '.scss': 'scss', '.sass': 'sass',
+          '.py': 'python', '.rb': 'ruby', '.go': 'go', '.rs': 'rust',
+          '.java': 'java', '.kt': 'kotlin', '.kts': 'kotlin',
+          '.c': 'c', '.cpp': 'cpp', '.cc': 'cpp', '.h': 'c', '.hpp': 'cpp',
+          '.cs': 'csharp',
+          '.sh': 'bash', '.bash': 'bash', '.zsh': 'bash',
+          '.ps1': 'powershell', '.psm1': 'powershell',
+          '.yml': 'yaml', '.yaml': 'yaml', '.toml': 'toml', '.ini': 'ini',
+          '.xml': 'xml', '.svg': 'xml', '.sql': 'sql',
+          '.dockerfile': 'dockerfile',
+          '.graphql': 'graphql', '.gql': 'graphql',
+          '.tex': 'latex', '.latex': 'latex',
+          '.swift': 'swift', '.zig': 'zig', '.php': 'php',
+          '.vue': 'vue', '.svelte': 'svelte',
+          '.env': 'dotenv',
+          '.mermaid': 'mermaid', '.mmd': 'mermaid',
+          '.kusto': 'kusto', '.kql': 'kusto',
+        };
+        try {
+          const content = fs.readFileSync(resolved, 'utf8');
+          const ext = path.extname(relPath).toLowerCase();
+          const language = EXT_TO_LANG[ext] || 'text';
+          jsonResponse(res, { path: relPath, content, language });
+        } catch (err) {
+          if (err.code === 'ENOENT' || err.code === 'EISDIR') {
+            errorResponse(res, 'File not found', 404);
+          } else {
+            errorResponse(res, err.message);
+          }
+        }
+      } else if (pathname === '/api/files') {
+        const relPath = parsed.query.path || '';
+        // Block path traversal
+        if (relPath.includes('..') || path.isAbsolute(relPath)) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const targetDir = path.join(projectDir, relPath);
+        const resolved = path.resolve(targetDir);
+        if (!resolved.startsWith(path.resolve(projectDir))) {
+          errorResponse(res, 'Invalid path', 400);
+          return;
+        }
+        const IGNORED = new Set(['.git', 'node_modules', '.beads', '.claude', '.playwright-mcp', 'coverage', '.vscode']);
+        try {
+          const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+          const results = [];
+          for (const entry of entries) {
+            // Skip hidden files/dirs and common ignored directories
+            if (entry.name.startsWith('.') || IGNORED.has(entry.name)) continue;
+            const entryPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+            results.push({
+              name: entry.name,
+              type: entry.isDirectory() ? 'directory' : 'file',
+              path: entryPath,
+            });
+          }
+          // Sort: directories first, then alphabetically within each group
+          results.sort((a, b) => {
+            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+          });
+          jsonResponse(res, results);
+        } catch (err) {
+          if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
+            errorResponse(res, 'Directory not found', 404);
+          } else {
+            errorResponse(res, err.message);
+          }
+        }
       } else if (pathname === '/api/branches') {
         const stdout = await execGit(['branch', '--format=%(refname:short)'], projectDir);
         const branches = stdout.trim().split('\n').filter(Boolean);

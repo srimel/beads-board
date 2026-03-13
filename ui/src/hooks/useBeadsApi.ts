@@ -1,6 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { usePolling } from './usePolling'
-import type { BeadIssue, GitCommit, BranchesResponse } from '@/lib/types'
+import type { BeadIssue, GitCommit, BranchesResponse, FileEntry } from '@/lib/types'
 
 const API_BASE = ''  // Same origin
 
@@ -54,4 +54,28 @@ export function useGitStatus() {
 export function useProject() {
   const fetchFn = useCallback(() => fetchJson<{ name: string }>('/api/project'), [])
   return usePolling(fetchFn, 60000)  // Project name rarely changes
+}
+
+export function useFileContent(filePath: string) {
+  const [data, setData] = useState<{ path: string; content: string; language: string } | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!filePath) return
+    setLoading(true)
+    fetchJson<{ path: string; content: string; language: string }>(`/api/file-content?path=${encodeURIComponent(filePath)}`)
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }, [filePath])
+
+  return { data, loading }
+}
+
+export function useFiles(dirPath: string) {
+  const fetchFn = useCallback(
+    () => fetchJson<FileEntry[]>(`/api/files?path=${encodeURIComponent(dirPath)}`),
+    [dirPath]
+  )
+  return usePolling(fetchFn, 30000)  // Files change less frequently
 }

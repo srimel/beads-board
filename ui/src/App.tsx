@@ -274,7 +274,8 @@ function App() {
           />
         </main>
       ) : (
-        <main ref={mainRef} className="flex flex-1 min-h-0">
+        <main className="flex flex-1 min-h-0">
+          <div ref={mainRef} className="flex flex-1 min-w-0">
           {/* Kanban + Terminal */}
           <div
             ref={kanbanRef}
@@ -377,6 +378,7 @@ function App() {
               <GitLog onCollapse={toggleGitLogCollapsed} onBeadClick={handleBeadClick} highlightedBeadId={highlightedBeadId} />
             </div>
           )}
+          </div>
         </main>
       )}
       <IssueDetailPanel
