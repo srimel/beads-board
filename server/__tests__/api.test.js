@@ -119,4 +119,57 @@ describe('API endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toContain('text/html');
   });
+
+  it('GET /api/git-log parses branch and limit query params', async () => {
+    mockExecFile((cmd, args) => {
+      // Verify git log is called with the branch and limit from query params
+      if (cmd === 'git') {
+        expect(args).toContain('main');
+        expect(args).toContain('-n');
+        expect(args).toContain('10');
+        return 'abc1234\x00feat: test\x00body\x00Author\x002025-01-01\x1e';
+      }
+      return '';
+    });
+    const res = await get('/api/git-log?branch=main&limit=10');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+    expect(res.data[0]).toHaveProperty('hash', 'abc1234');
+  });
+
+  it('GET /api/git-log works without query params', async () => {
+    mockExecFile((cmd, args) => {
+      if (cmd === 'git') {
+        expect(args).toContain('-n');
+        expect(args).toContain('50'); // default limit
+        return 'def5678\x00fix: something\x00\x00Dev\x002025-02-01\x1e';
+      }
+      return '';
+    });
+    const res = await get('/api/git-log');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.data)).toBe(true);
+  });
+
+  it('GET /api/git-diff parses file query param', async () => {
+    mockExecFile((cmd, args) => {
+      if (cmd === 'git' && args.includes('diff')) {
+        expect(args).toContain('README.md');
+        return '--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new';
+      }
+      return '';
+    });
+    const res = await get('/api/git-diff?file=README.md');
+    expect(res.status).toBe(200);
+    expect(res.data).toHaveProperty('file', 'README.md');
+    expect(res.data).toHaveProperty('diff');
+  });
+
+  it('does not use deprecated url.parse()', async () => {
+    // Verify the handlers module does not import or use url.parse
+    const fs = await import('node:fs');
+    const handlersPath = path.join(__dirname, '..', 'handlers.js');
+    const source = fs.readFileSync(handlersPath, 'utf8');
+    expect(source).not.toMatch(/url\.parse\s*\(/);
+  });
 });
