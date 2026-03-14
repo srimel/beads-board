@@ -11,28 +11,34 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const LS_KEY = 'beads-board-terminal-font-family'
-const DEFAULT_PLACEHOLDER = 'Menlo, Monaco, "Courier New", monospace'
+const LS_FONT_FAMILY = 'beads-board-terminal-font-family'
+const LS_FONT_SIZE = 'beads-board-terminal-font-size'
+const DEFAULT_FONT_PLACEHOLDER = 'Menlo, Monaco, "Courier New", monospace'
+const DEFAULT_FONT_SIZE = 13
 
 interface SettingsModalProps {
   open: boolean
   onClose: () => void
-  onSave: (settings: { fontFamily: string }) => void
+  onSave: (settings: { fontFamily: string; fontSize: number }) => void
 }
 
 export function SettingsModal({ open, onClose, onSave }: SettingsModalProps) {
   const [fontFamily, setFontFamily] = useState('')
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE)
 
-  // Read current value when modal opens
+  // Read current values when modal opens
   useEffect(() => {
     if (open) {
-      setFontFamily(localStorage.getItem(LS_KEY) || '')
+      setFontFamily(localStorage.getItem(LS_FONT_FAMILY) || '')
+      const savedSize = localStorage.getItem(LS_FONT_SIZE)
+      setFontSize(savedSize ? Number(savedSize) : DEFAULT_FONT_SIZE)
     }
   }, [open])
 
   const handleSave = () => {
-    localStorage.setItem(LS_KEY, fontFamily)
-    onSave({ fontFamily })
+    localStorage.setItem(LS_FONT_FAMILY, fontFamily)
+    localStorage.setItem(LS_FONT_SIZE, String(fontSize))
+    onSave({ fontFamily, fontSize })
     onClose()
   }
 
@@ -61,7 +67,18 @@ export function SettingsModal({ open, onClose, onSave }: SettingsModalProps) {
                 id="font-family"
                 value={fontFamily}
                 onChange={(e) => setFontFamily(e.target.value)}
-                placeholder={DEFAULT_PLACEHOLDER}
+                placeholder={DEFAULT_FONT_PLACEHOLDER}
+              />
+            </div>
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="font-size">Font Size</Label>
+              <Input
+                id="font-size"
+                type="number"
+                min={8}
+                max={32}
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value) || DEFAULT_FONT_SIZE)}
               />
             </div>
           </div>

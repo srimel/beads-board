@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { GitLog } from '@/components/GitLog'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useTheme } from '@/hooks/useTheme'
 import { IssueDetailPanel } from '@/components/IssueDetailPanel'
 import { DependencyGraph } from '@/components/DependencyGraph'
 import { FilterBar, applyFilters } from '@/components/FilterBar'
@@ -27,6 +28,7 @@ function App() {
   const { data: blocked, loading: blockedLoading } = useBlocked()
   const { data: project } = useProject()
 
+  const { theme, toggle: toggleTheme } = useTheme()
   const projectName = project?.name || 'beads-board'
   const loading = issuesLoading || readyLoading || blockedLoading
   const apiError = !loading && issuesError ? issuesError : null
@@ -165,8 +167,9 @@ function App() {
     }, 200)
   }, [])
 
-  const handleSettingsSave = useCallback((settings: { fontFamily: string }) => {
+  const handleSettingsSave = useCallback((settings: { fontFamily: string; fontSize: number }) => {
     terminalPanelRef.current?.setFontFamily(settings.fontFamily)
+    terminalPanelRef.current?.setFontSize(settings.fontSize)
   }, [])
 
   const splitPercentRef = useRef(splitPercent)
@@ -246,7 +249,7 @@ function App() {
           >
             <Settings className="h-4 w-4" />
           </button>
-          <ThemeToggle />
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
         </div>
       </header>
 
@@ -329,7 +332,7 @@ function App() {
             )}
             <div style={{ height: terminalOpen ? `${terminalHeight}px` : '0px' }} className="shrink-0 overflow-hidden flex flex-col">
               {terminalOpen && (
-                <div className="flex items-center justify-end gap-1 px-2 py-0.5 bg-[#0d1117] border-b border-border/30 shrink-0">
+                <div className="flex items-center justify-end gap-1 px-2 py-0.5 bg-background border-b border-border/30 shrink-0">
                   <button
                     onClick={() => terminalPanelRef.current?.resetSession()}
                     className="rounded p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -349,7 +352,7 @@ function App() {
                   </button>
                 </div>
               )}
-              <TerminalPanel ref={terminalPanelRef} visible={terminalOpen} />
+              <TerminalPanel ref={terminalPanelRef} visible={terminalOpen} theme={theme} />
             </div>
           </div>
 

@@ -7,15 +7,8 @@ import type { BeadIssue } from '@/lib/types'
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: {
-    div: ({
-      children,
-      className,
-      role,
-      'aria-modal': ariaModal,
-      'aria-labelledby': ariaLabelledBy,
-      onAnimationComplete,
-      ...rest
-    }: any) => {
+    div: (props: any) => {
+      const { children, className, role, onAnimationComplete } = props
       // Simulate animation completing immediately
       if (onAnimationComplete) {
         setTimeout(() => onAnimationComplete(), 0)
@@ -24,8 +17,8 @@ vi.mock('framer-motion', () => ({
         <div
           className={className}
           role={role}
-          aria-modal={ariaModal}
-          aria-labelledby={ariaLabelledBy}
+          aria-modal={props['aria-modal']}
+          aria-labelledby={props['aria-labelledby']}
         >
           {children}
         </div>
@@ -59,7 +52,7 @@ const mockDetailResponse = {
 
 beforeEach(() => {
   vi.restoreAllMocks()
-  global.fetch = vi.fn().mockResolvedValue({
+  globalThis.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: () => Promise.resolve(mockDetailResponse),
   })
@@ -67,7 +60,7 @@ beforeEach(() => {
 
 describe('IssueDetailPanel', () => {
   it('renders with flex column layout on the modal container', async () => {
-    const { container } = render(
+    render(
       <IssueDetailPanel
         issueId="bd-test1"
         open={true}
@@ -128,7 +121,7 @@ describe('IssueDetailPanel', () => {
   })
 
   it('renders "Issue not found" when detail is null after loading', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(null),
     })
