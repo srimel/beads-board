@@ -259,3 +259,170 @@ describe('GET /api/files', () => {
     expect(names).not.toContain('node_modules');
   });
 });
+
+describe('Branch-aware endpoints', () => {
+  describe('GET /api/git-status', () => {
+    it('without branch param calls git status --porcelain', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          expect(args[0]).toBe('status');
+          expect(args).toContain('--porcelain');
+          return 'M  README.md\n';
+        }
+        return '';
+      });
+      const res = await get('/api/git-status');
+      expect(res.status).toBe(200);
+      expect(res.data[0]).toHaveProperty('path', 'README.md');
+    });
+
+    it('with branch param calls git diff --name-status <branch>', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          expect(args[0]).toBe('diff');
+          expect(args).toContain('--name-status');
+          expect(args).toContain('feature-branch');
+          return 'M\tREADME.md\nA\tnew-file.js\n';
+        }
+        return '';
+      });
+      const res = await get('/api/git-status?branch=feature-branch');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data)).toBe(true);
+      expect(res.data[0]).toHaveProperty('status', 'M');
+      expect(res.data[0]).toHaveProperty('path', 'README.md');
+      expect(res.data[1]).toHaveProperty('status', 'A');
+      expect(res.data[1]).toHaveProperty('path', 'new-file.js');
+    });
+
+    it('with branch param rejects invalid branch names', async () => {
+      const res = await get('/api/git-status?branch=bad;branch');
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error', 'Invalid branch name');
+    });
+  });
+
+  describe('GET /api/git-diff', () => {
+    it('without branch param calls git diff HEAD -- <file>', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git' && args.includes('diff')) {
+          expect(args).toContain('HEAD');
+          expect(args).toContain('README.md');
+          return '--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new';
+        }
+        return '';
+      });
+      const res = await get('/api/git-diff?file=README.md');
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('file', 'README.md');
+    });
+
+    it('with branch param calls git diff <branch> -- <file>', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git' && args.includes('diff')) {
+          expect(args).toContain('feature-branch');
+          expect(args).toContain('--');
+          expect(args).toContain('server.js');
+          return '--- a/server.js\n+++ b/server.js\n@@ -1 +1 @@\n-old\n+new';
+        }
+        return '';
+      });
+      const res = await get('/api/git-diff?file=server.js&branch=feature-branch');
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('file', 'server.js');
+      expect(res.data).toHaveProperty('diff');
+    });
+
+    it('with branch param rejects invalid branch names', async () => {
+      const res = await get('/api/git-diff?file=README.md&branch=bad;branch');
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error', 'Invalid branch name');
+    });
+  });
+
+  describe('GET /api/files with branch param', () => {
+    it('with branch param calls git ls-tree (single call)', async () => {
+      let lsTreeCalls = 0;
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          expect(args[0]).toBe('ls-tree');
+          expect(args).not.toContain('--name-only');
+          expect(args).toContain('feature-branch');
+          lsTreeCalls++;
+          return '100644 blob abcdef1234567890\tREADME.md\n100644 blob abcdef1234567891\tpackage.json\n040000 tree abcdef1234567892\tsrc\n';
+        }
+        return '';
+      });
+      const res = await get('/api/files?branch=feature-branch');
+      expect(res.status).toBe(200);
+      expect(lsTreeCalls).toBe(1);
+      expect(Array.isArray(res.data)).toBe(true);
+      expect(res.data.length).toBe(3);
+      const srcEntry = res.data.find(e => e.name === 'src');
+      expect(srcEntry).toHaveProperty('type', 'directory');
+      const readmeEntry = res.data.find(e => e.name === 'README.md');
+      expect(readmeEntry).toHaveProperty('type', 'file');
+    });
+
+    it('with branch param filters ignored directories', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          return '040000 tree aaa\tnode_modules\n040000 tree bbb\t.git\n040000 tree ccc\tsrc\n100644 blob ddd\tREADME.md\n100644 blob eee\t.env\n';
+        }
+        return '';
+      });
+      const res = await get('/api/files?branch=feature-branch');
+      expect(res.status).toBe(200);
+      const names = res.data.map(e => e.name);
+      expect(names).toContain('src');
+      expect(names).toContain('README.md');
+      expect(names).not.toContain('node_modules');
+      expect(names).not.toContain('.git');
+      expect(names).not.toContain('.env');
+    });
+
+    it('with branch param and path lists subdirectory via git ls-tree', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          expect(args[0]).toBe('ls-tree');
+          expect(args).toContain('feature-branch:server');
+          return '100644 blob abcdef1234567890\tindex.js\n100644 blob abcdef1234567891\thandlers.js\n';
+        }
+        return '';
+      });
+      const res = await get('/api/files?path=server&branch=feature-branch');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.data)).toBe(true);
+      expect(res.data.length).toBe(2);
+    });
+
+    it('with branch param rejects invalid branch names', async () => {
+      const res = await get('/api/files?branch=bad;branch');
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error', 'Invalid branch name');
+    });
+  });
+
+  describe('GET /api/file-content', () => {
+    it('with branch param calls git show <branch>:<path>', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          expect(args[0]).toBe('show');
+          expect(args[1]).toBe('feature-branch:src/index.ts');
+          return 'console.log("hello")';
+        }
+        return '';
+      });
+      const res = await get('/api/file-content?path=src/index.ts&branch=feature-branch');
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('content', 'console.log("hello")');
+      expect(res.data).toHaveProperty('language', 'typescript');
+    });
+
+    it('with branch param rejects invalid branch names', async () => {
+      const res = await get('/api/file-content?path=README.md&branch=bad;branch');
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error', 'Invalid branch name');
+    });
+  });
+});

@@ -270,7 +270,7 @@ export function IssueDetailPanel({
             role="dialog"
             aria-modal="true"
             aria-labelledby="issue-detail-title"
-            className="fixed z-50 w-full sm:max-w-[560px] max-w-[calc(100%-2rem)] max-h-[85vh] rounded-xl border bg-card text-card-foreground border-border shadow-2xl p-0 outline-none overflow-hidden"
+            className="fixed z-50 w-full sm:max-w-[560px] max-w-[calc(100%-2rem)] max-h-[85vh] flex flex-col rounded-xl border bg-card text-card-foreground border-border shadow-2xl p-0 outline-none overflow-hidden"
             style={{
               top: '50%',
               left: '50%',
@@ -327,7 +327,7 @@ export function IssueDetailPanel({
                 </div>
               </div>
             ) : detail ? (
-              <ScrollArea className="max-h-[80vh]">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-5 pb-3">
                   <div className="flex items-center gap-2 flex-wrap mb-2">
                     <span className={`text-xs font-semibold ${PRIORITY_COLORS[detail.priority] || PRIORITY_COLORS[4]}`}>

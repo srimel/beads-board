@@ -44,7 +44,7 @@ export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogPro
   const fileExplorerRef = useRef<FileExplorerHandle>(null)
   const branch = selectedBranch || branchData?.current || ''
   const { data: commits, loading: commitsLoading } = useGitLog(branch)
-  const { data: statusFiles, loading: statusLoading } = useGitStatus()
+  const { data: statusFiles, loading: statusLoading } = useGitStatus(branch)
 
   const hasOverlay = !!(viewingFile || selectedFile)
 
@@ -52,9 +52,9 @@ export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogPro
     <div className="flex flex-col h-full border-l border-border">
       {/* Overlay views — rendered on top, hiding the tabs beneath */}
       {viewingFile ? (
-        <FileContentView file={viewingFile} onBack={() => setViewingFile(null)} />
+        <FileContentView file={viewingFile} onBack={() => setViewingFile(null)} branch={branch} />
       ) : selectedFile ? (
-        <FileDiffView file={selectedFile} onBack={() => setSelectedFile(null)} />
+        <FileDiffView file={selectedFile} onBack={() => setSelectedFile(null)} branch={branch} />
       ) : null}
 
       {/* Main tab structure — always mounted to preserve FileExplorer state, hidden when overlay is active */}
@@ -114,7 +114,7 @@ export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogPro
             )}
           </div>
           <TabsContent value="files" className="flex-1 min-h-0 mt-0">
-            <FileExplorer ref={fileExplorerRef} onFileClick={setViewingFile} />
+            <FileExplorer ref={fileExplorerRef} onFileClick={setViewingFile} branch={branch} />
           </TabsContent>
           <TabsContent value="log" className="flex-1 min-h-0 mt-0">
             <ScrollArea className="h-full">

@@ -7,43 +7,47 @@ export interface FileExplorerHandle {
   refresh: () => void
 }
 
-async function fetchFiles(dirPath: string): Promise<FileEntry[]> {
-  const res = await fetch(`/api/files?path=${encodeURIComponent(dirPath)}`)
+async function fetchFiles(dirPath: string, branch?: string): Promise<FileEntry[]> {
+  const url = `/api/files?path=${encodeURIComponent(dirPath)}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`
+  const res = await fetch(url)
   if (!res.ok) throw new Error(`API error: ${res.status}`)
   return res.json()
 }
 
 interface FileExplorerProps {
   onFileClick?: (filePath: string) => void
+  branch?: string
 }
 
-export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(function FileExplorer({ onFileClick }, ref) {
+export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(function FileExplorer({ onFileClick, branch }, ref) {
   const [rootEntries, setRootEntries] = useState<FileEntry[]>([])
   const [dirCache, setDirCache] = useState<Record<string, FileEntry[]>>({})
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [loadingDirs, setLoadingDirs] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
 
-  // Load root entries on mount
+  // Load root entries on mount and when branch changes
   useEffect(() => {
-    fetchFiles('').then((entries) => {
+    setDirCache({})
+    setExpandedDirs(new Set())
+    fetchFiles('', branch).then((entries) => {
       setRootEntries(entries)
       setError(null)
     }).catch((err) => {
       setError(err.message)
     })
-  }, [])
+  }, [branch])
 
   const handleRefresh = useCallback(() => {
     setDirCache({})
     setExpandedDirs(new Set())
-    fetchFiles('').then((entries) => {
+    fetchFiles('', branch).then((entries) => {
       setRootEntries(entries)
       setError(null)
     }).catch((err) => {
       setError(err.message)
     })
-  }, [])
+  }, [branch])
 
   useImperativeHandle(ref, () => ({ refresh: handleRefresh }), [handleRefresh])
 
@@ -57,7 +61,7 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
         // Fetch children if not already cached
         if (!dirCache[dirPath]) {
           setLoadingDirs((ld) => new Set(ld).add(dirPath))
-          fetchFiles(dirPath).then((entries) => {
+          fetchFiles(dirPath, branch).then((entries) => {
             setDirCache((c) => ({ ...c, [dirPath]: entries }))
             setLoadingDirs((ld) => {
               const newLd = new Set(ld)
@@ -75,7 +79,7 @@ export const FileExplorer = forwardRef<FileExplorerHandle, FileExplorerProps>(fu
       }
       return next
     })
-  }, [dirCache])
+  }, [dirCache, branch])
 
   // Render root entries — FileTreeItem handles recursion via dirCache
   const renderEntries = useCallback(

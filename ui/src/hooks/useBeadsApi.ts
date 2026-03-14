@@ -38,16 +38,23 @@ export function useBranches() {
   return usePolling(fetchFn, 30000)  // Branches change less often
 }
 
-export function useGitFileDiff(file: string) {
+export function useGitFileDiff(file: string, branch?: string) {
   const fetchFn = useCallback(
-    () => file ? fetchJson<{ file: string; diff: string }>(`/api/git-diff?file=${encodeURIComponent(file)}`) : Promise.resolve(null),
-    [file]
+    () => file ? fetchJson<{ file: string; diff: string }>(
+      `/api/git-diff?file=${encodeURIComponent(file)}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`
+    ) : Promise.resolve(null),
+    [file, branch]
   )
   return usePolling(fetchFn, 10000)
 }
 
-export function useGitStatus() {
-  const fetchFn = useCallback(() => fetchJson<{ status: string; path: string }[]>('/api/git-status'), [])
+export function useGitStatus(branch?: string) {
+  const fetchFn = useCallback(
+    () => fetchJson<{ status: string; path: string }[]>(
+      `/api/git-status${branch ? `?branch=${encodeURIComponent(branch)}` : ''}`
+    ),
+    [branch]
+  )
   return usePolling(fetchFn)
 }
 
@@ -56,18 +63,20 @@ export function useProject() {
   return usePolling(fetchFn, 60000)  // Project name rarely changes
 }
 
-export function useFileContent(filePath: string) {
+export function useFileContent(filePath: string, branch?: string) {
   const [data, setData] = useState<{ path: string; content: string; language: string } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!filePath) return
     setLoading(true)
-    fetchJson<{ path: string; content: string; language: string }>(`/api/file-content?path=${encodeURIComponent(filePath)}`)
+    fetchJson<{ path: string; content: string; language: string }>(
+      `/api/file-content?path=${encodeURIComponent(filePath)}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`
+    )
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [filePath])
+  }, [filePath, branch])
 
   return { data, loading }
 }

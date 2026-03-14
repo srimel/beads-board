@@ -6,6 +6,8 @@ const path = require('node:path');
 // MIME types
 // ---------------------------------------------------------------------------
 
+const FILES_IGNORED = new Set(['.git', 'node_modules', '.beads', '.claude', '.playwright-mcp', 'coverage', '.vscode']);
+
 const MIME_TYPES = {
   '.html': 'text/html',
   '.js': 'application/javascript',
@@ -181,32 +183,63 @@ function createRequestHandler(projectDir, distDir) {
           jsonResponse(res, []);
         }
       } else if (pathname === '/api/git-status') {
-        const stdout = await execGit(['status', '--porcelain'], projectDir);
-        const files = stdout.replace(/\n$/, '').split('\n').filter(Boolean).map(line => {
-          const match = line.match(/^(..)[ ](.+)$/);
-          if (!match) return { status: '?', path: line.trim() };
-          return { status: match[1].trim(), path: match[2] };
-        });
-        jsonResponse(res, files);
+        const branch = parsedUrl.searchParams.get('branch') || '';
+        if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
+          errorResponse(res, 'Invalid branch name', 400);
+          return;
+        }
+        if (branch) {
+          // Show what changed between the selected branch and the working tree
+          // (i.e. "what would change if you merged this branch into your working state")
+          const stdout = await execGit(['diff', '--name-status', branch], projectDir);
+          const files = stdout.replace(/\n$/, '').split('\n').filter(Boolean).map(line => {
+            const match = line.match(/^([A-Z])\t(.+)$/);
+            if (!match) return { status: '?', path: line.trim() };
+            return { status: match[1], path: match[2] };
+          });
+          jsonResponse(res, files);
+        } else {
+          const stdout = await execGit(['status', '--porcelain'], projectDir);
+          const files = stdout.replace(/\n$/, '').split('\n').filter(Boolean).map(line => {
+            const match = line.match(/^(..)[ ](.+)$/);
+            if (!match) return { status: '?', path: line.trim() };
+            return { status: match[1].trim(), path: match[2] };
+          });
+          jsonResponse(res, files);
+        }
       } else if (pathname === '/api/git-diff') {
         const file = parsedUrl.searchParams.get('file') || '';
+        const branch = parsedUrl.searchParams.get('branch') || '';
         if (!file || /[;&|`$]/.test(file)) {
           errorResponse(res, 'Invalid file path', 400);
           return;
         }
+        if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
+          errorResponse(res, 'Invalid branch name', 400);
+          return;
+        }
         try {
-          // Try staged + unstaged diff first, fall back to untracked file content
           let diff;
-          try {
-            diff = await execGit(['diff', 'HEAD', '--', file], projectDir);
-            if (!diff.trim()) {
-              diff = await execGit(['diff', '--', file], projectDir);
+          if (branch) {
+            // Diff working tree against the specified branch for this file
+            try {
+              diff = await execGit(['diff', branch, '--', file], projectDir);
+            } catch {
+              diff = '';
             }
-          } catch {
-            diff = '';
+          } else {
+            // Try staged + unstaged diff first, fall back to untracked file content
+            try {
+              diff = await execGit(['diff', 'HEAD', '--', file], projectDir);
+              if (!diff.trim()) {
+                diff = await execGit(['diff', '--', file], projectDir);
+              }
+            } catch {
+              diff = '';
+            }
           }
-          if (!diff.trim()) {
-            // Untracked file — show full content as addition
+          if (!diff.trim() && !branch) {
+            // Untracked file — show full content as addition (only for current branch)
             try {
               const content = fs.readFileSync(
                 path.join(projectDir, file), 'utf8'
@@ -223,14 +256,13 @@ function createRequestHandler(projectDir, distDir) {
         }
       } else if (pathname === '/api/file-content') {
         const relPath = parsedUrl.searchParams.get('path') || '';
+        const branch = parsedUrl.searchParams.get('branch') || '';
         if (!relPath || relPath.includes('..') || path.isAbsolute(relPath)) {
           errorResponse(res, 'Invalid path', 400);
           return;
         }
-        const targetFile = path.join(projectDir, relPath);
-        const resolved = path.resolve(targetFile);
-        if (!resolved.startsWith(path.resolve(projectDir))) {
-          errorResponse(res, 'Invalid path', 400);
+        if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
+          errorResponse(res, 'Invalid branch name', 400);
           return;
         }
         const EXT_TO_LANG = {
@@ -257,56 +289,111 @@ function createRequestHandler(projectDir, distDir) {
           '.mermaid': 'mermaid', '.mmd': 'mermaid',
           '.kusto': 'kusto', '.kql': 'kusto',
         };
-        try {
-          const content = fs.readFileSync(resolved, 'utf8');
-          const ext = path.extname(relPath).toLowerCase();
-          const language = EXT_TO_LANG[ext] || 'text';
-          jsonResponse(res, { path: relPath, content, language });
-        } catch (err) {
-          if (err.code === 'ENOENT' || err.code === 'EISDIR') {
-            errorResponse(res, 'File not found', 404);
-          } else {
+        const ext = path.extname(relPath).toLowerCase();
+        const language = EXT_TO_LANG[ext] || 'text';
+        if (branch) {
+          // git show sandboxes to the repo; relPath already validated against .. and absolute
+          try {
+            const content = await execGit(['show', `${branch}:${relPath}`], projectDir);
+            jsonResponse(res, { path: relPath, content, language });
+          } catch (err) {
             errorResponse(res, err.message);
+          }
+        } else {
+          const targetFile = path.join(projectDir, relPath);
+          const resolved = path.resolve(targetFile);
+          if (!resolved.startsWith(path.resolve(projectDir))) {
+            errorResponse(res, 'Invalid path', 400);
+            return;
+          }
+          try {
+            const content = fs.readFileSync(resolved, 'utf8');
+            jsonResponse(res, { path: relPath, content, language });
+          } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'EISDIR') {
+              errorResponse(res, 'File not found', 404);
+            } else {
+              errorResponse(res, err.message);
+            }
           }
         }
       } else if (pathname === '/api/files') {
         const relPath = parsedUrl.searchParams.get('path') || '';
+        const branch = parsedUrl.searchParams.get('branch') || '';
         // Block path traversal
         if (relPath.includes('..') || path.isAbsolute(relPath)) {
           errorResponse(res, 'Invalid path', 400);
           return;
         }
-        const targetDir = path.join(projectDir, relPath);
-        const resolved = path.resolve(targetDir);
-        if (!resolved.startsWith(path.resolve(projectDir))) {
-          errorResponse(res, 'Invalid path', 400);
+        if (branch && !/^[\w\/.@{}-]+$/.test(branch)) {
+          errorResponse(res, 'Invalid branch name', 400);
           return;
         }
-        const IGNORED = new Set(['.git', 'node_modules', '.beads', '.claude', '.playwright-mcp', 'coverage', '.vscode']);
-        try {
-          const entries = fs.readdirSync(targetDir, { withFileTypes: true });
-          const results = [];
-          for (const entry of entries) {
-            // Skip hidden files/dirs and common ignored directories
-            if (entry.name.startsWith('.') || IGNORED.has(entry.name)) continue;
-            const entryPath = relPath ? `${relPath}/${entry.name}` : entry.name;
-            results.push({
-              name: entry.name,
-              type: entry.isDirectory() ? 'directory' : 'file',
-              path: entryPath,
+        if (branch) {
+          // Use git ls-tree to list files from the specified branch
+          try {
+            const treeRef = relPath ? `${branch}:${relPath}` : branch;
+            const stdout = await execGit(['ls-tree', treeRef], projectDir);
+            const results = [];
+            for (const line of stdout.trim().split('\n').filter(Boolean)) {
+              // Format: <mode> <type> <hash>\t<name>
+              const match = line.match(/^\d+\s+(blob|tree)\s+[a-f0-9]+\t(.+)$/);
+              if (!match) continue;
+              const name = match[2];
+              if (name.startsWith('.') || FILES_IGNORED.has(name)) continue;
+              const entryPath = relPath ? `${relPath}/${name}` : name;
+              results.push({
+                name,
+                type: match[1] === 'tree' ? 'directory' : 'file',
+                path: entryPath,
+              });
+            }
+            results.sort((a, b) => {
+              if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+              return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
             });
+            jsonResponse(res, results);
+          } catch (err) {
+            // git ls-tree fails when branch or path doesn't exist
+            const msg = err.message || '';
+            if (msg.includes('Not a valid object') || msg.includes('does not exist')) {
+              errorResponse(res, 'Directory not found', 404);
+            } else {
+              errorResponse(res, msg);
+            }
           }
-          // Sort: directories first, then alphabetically within each group
-          results.sort((a, b) => {
-            if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-          });
-          jsonResponse(res, results);
-        } catch (err) {
-          if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
-            errorResponse(res, 'Directory not found', 404);
-          } else {
-            errorResponse(res, err.message);
+        } else {
+          const targetDir = path.join(projectDir, relPath);
+          const resolved = path.resolve(targetDir);
+          if (!resolved.startsWith(path.resolve(projectDir))) {
+            errorResponse(res, 'Invalid path', 400);
+            return;
+          }
+          try {
+            const entries = fs.readdirSync(targetDir, { withFileTypes: true });
+            const results = [];
+            for (const entry of entries) {
+              // Skip hidden files/dirs and common ignored directories
+              if (entry.name.startsWith('.') || FILES_IGNORED.has(entry.name)) continue;
+              const entryPath = relPath ? `${relPath}/${entry.name}` : entry.name;
+              results.push({
+                name: entry.name,
+                type: entry.isDirectory() ? 'directory' : 'file',
+                path: entryPath,
+              });
+            }
+            // Sort: directories first, then alphabetically within each group
+            results.sort((a, b) => {
+              if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+              return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+            });
+            jsonResponse(res, results);
+          } catch (err) {
+            if (err.code === 'ENOENT' || err.code === 'ENOTDIR') {
+              errorResponse(res, 'Directory not found', 404);
+            } else {
+              errorResponse(res, err.message);
+            }
           }
         }
       } else if (pathname === '/api/branches') {

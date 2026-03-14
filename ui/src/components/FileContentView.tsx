@@ -9,6 +9,7 @@ import { createJavaScriptRegexEngine } from 'shiki/engine/javascript'
 interface FileContentViewProps {
   file: string
   onBack: () => void
+  branch?: string
 }
 
 // Fine-grained imports — only these grammars/themes get bundled
@@ -89,8 +90,8 @@ async function highlightCode(content: string, language: string): Promise<string>
   return highlighter.codeToHtml(content, { lang, theme: 'github-dark' })
 }
 
-export function FileContentView({ file, onBack }: FileContentViewProps) {
-  const { data, loading } = useFileContent(file)
+export function FileContentView({ file, onBack, branch }: FileContentViewProps) {
+  const { data, loading } = useFileContent(file, branch)
   const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null)
 
   const fileName = file

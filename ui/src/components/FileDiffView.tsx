@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 interface FileDiffViewProps {
   file: string
   onBack: () => void
+  branch?: string
 }
 
 function parseDiffLines(diff: string) {
@@ -49,8 +50,8 @@ const LINE_PREFIX = {
   empty: ' ',
 }
 
-export function FileDiffView({ file, onBack }: FileDiffViewProps) {
-  const { data, loading } = useGitFileDiff(file)
+export function FileDiffView({ file, onBack, branch }: FileDiffViewProps) {
+  const { data, loading } = useGitFileDiff(file, branch)
   const lines = data?.diff ? parseDiffLines(data.diff) : []
 
   const fileName = file.split('/').pop() || file
