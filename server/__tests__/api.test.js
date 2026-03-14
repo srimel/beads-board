@@ -251,12 +251,14 @@ describe('GET /api/files', () => {
     expect(res.data).toHaveProperty('language', 'javascript');
   });
 
-  it('excludes hidden files and common ignored directories', async () => {
+  it('excludes only .git but shows dotfiles, node_modules, and coverage', async () => {
     const res = await get('/api/files');
     expect(res.status).toBe(200);
     const names = res.data.map(e => e.name);
     expect(names).not.toContain('.git');
-    expect(names).not.toContain('node_modules');
+    // Dotfiles, node_modules, coverage should all be visible
+    expect(names).toContain('.gitignore');
+    expect(names).toContain('node_modules');
   });
 });
 
@@ -376,9 +378,9 @@ describe('Branch-aware endpoints', () => {
       const names = res.data.map(e => e.name);
       expect(names).toContain('src');
       expect(names).toContain('README.md');
-      expect(names).not.toContain('node_modules');
+      expect(names).toContain('node_modules');
       expect(names).not.toContain('.git');
-      expect(names).not.toContain('.env');
+      expect(names).toContain('.env');
     });
 
     it('with branch param and path lists subdirectory via git ls-tree', async () => {
@@ -400,6 +402,25 @@ describe('Branch-aware endpoints', () => {
       const res = await get('/api/files?branch=bad;branch');
       expect(res.status).toBe(400);
       expect(res.data).toHaveProperty('error', 'Invalid branch name');
+    });
+
+    it('with branch param shows everything except .git', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'git') {
+          return '040000 tree aaa\tnode_modules\n040000 tree bbb\t.git\n040000 tree ccc\tsrc\n100644 blob ddd\tREADME.md\n100644 blob eee\t.env\n100644 blob fff\t.eslintrc\n040000 tree abc\tcoverage\n';
+        }
+        return '';
+      });
+      const res = await get('/api/files?branch=feature-branch');
+      expect(res.status).toBe(200);
+      const names = res.data.map(e => e.name);
+      expect(names).toContain('src');
+      expect(names).toContain('README.md');
+      expect(names).toContain('.env');
+      expect(names).toContain('.eslintrc');
+      expect(names).toContain('node_modules');
+      expect(names).toContain('coverage');
+      expect(names).not.toContain('.git');
     });
   });
 

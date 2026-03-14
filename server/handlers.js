@@ -6,7 +6,7 @@ const path = require('node:path');
 // MIME types
 // ---------------------------------------------------------------------------
 
-const FILES_IGNORED = new Set(['.git', 'node_modules', '.beads', '.claude', '.playwright-mcp', 'coverage', '.vscode']);
+const FILES_IGNORED = new Set(['.git']);
 
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -340,7 +340,7 @@ function createRequestHandler(projectDir, distDir) {
               const match = line.match(/^\d+\s+(blob|tree)\s+[a-f0-9]+\t(.+)$/);
               if (!match) continue;
               const name = match[2];
-              if (name.startsWith('.') || FILES_IGNORED.has(name)) continue;
+              if (FILES_IGNORED.has(name)) continue;
               const entryPath = relPath ? `${relPath}/${name}` : name;
               results.push({
                 name,
@@ -373,8 +373,8 @@ function createRequestHandler(projectDir, distDir) {
             const entries = fs.readdirSync(targetDir, { withFileTypes: true });
             const results = [];
             for (const entry of entries) {
-              // Skip hidden files/dirs and common ignored directories
-              if (entry.name.startsWith('.') || FILES_IGNORED.has(entry.name)) continue;
+              // Skip ignored dirs (.git, node_modules, coverage)
+              if (FILES_IGNORED.has(entry.name)) continue;
               const entryPath = relPath ? `${relPath}/${entry.name}` : entry.name;
               results.push({
                 name: entry.name,

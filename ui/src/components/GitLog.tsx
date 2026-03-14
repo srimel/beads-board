@@ -40,7 +40,6 @@ export function GitLog({ onCollapse, onBeadClick, highlightedBeadId }: GitLogPro
   )
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [viewingFile, setViewingFile] = useState<string | null>(null)
-
   const fileExplorerRef = useRef<FileExplorerHandle>(null)
   const branch = selectedBranch || branchData?.current || ''
   const { data: commits, loading: commitsLoading } = useGitLog(branch)
