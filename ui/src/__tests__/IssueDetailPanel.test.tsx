@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { IssueDetailPanel } from '@/components/IssueDetailPanel'
 import type { BeadIssue } from '@/lib/types'
 
@@ -118,6 +118,104 @@ describe('IssueDetailPanel', () => {
     // Loading skeleton should have animate-pulse
     const skeleton = container.querySelector('[class*="animate-pulse"]')
     expect(skeleton).toBeInTheDocument()
+  })
+
+  it('shows edit button next to description heading', async () => {
+    render(
+      <IssueDetailPanel
+        issueId="bd-test1"
+        open={true}
+        onClose={() => {}}
+        issues={[mockIssue]}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Issue Title')).toBeInTheDocument()
+    })
+
+    const editButton = screen.getByRole('button', { name: /edit description/i })
+    expect(editButton).toBeInTheDocument()
+  })
+
+  it('enters edit mode with textarea and save/cancel buttons on edit click', async () => {
+    render(
+      <IssueDetailPanel
+        issueId="bd-test1"
+        open={true}
+        onClose={() => {}}
+        issues={[mockIssue]}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Issue Title')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /edit description/i }))
+
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveValue('A test description that could be very long')
+    expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+  })
+
+  it('cancel exits edit mode without saving', async () => {
+    render(
+      <IssueDetailPanel
+        issueId="bd-test1"
+        open={true}
+        onClose={() => {}}
+        issues={[mockIssue]}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Issue Title')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /edit description/i }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Changed text' } })
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+
+    // Should exit edit mode and show original description
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.getByText('A test description that could be very long')).toBeInTheDocument()
+  })
+
+  it('save calls PATCH API and exits edit mode', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockDetailResponse) }) // initial fetch
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ok: true }) }) // PATCH
+
+    globalThis.fetch = fetchMock
+
+    render(
+      <IssueDetailPanel
+        issueId="bd-test1"
+        open={true}
+        onClose={() => {}}
+        issues={[mockIssue]}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Test Issue Title')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /edit description/i }))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Updated description' } })
+    fireEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/issue/bd-test1',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ description: 'Updated description' }),
+        })
+      )
+    })
   })
 
   it('renders "Issue not found" when detail is null after loading', async () => {

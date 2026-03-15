@@ -70,6 +70,16 @@ function normalizeIssue(issue) {
 // JSON response helpers
 // ---------------------------------------------------------------------------
 
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => {
+      try { resolve(JSON.parse(data)); } catch { resolve(null); }
+    });
+  });
+}
+
 function jsonResponse(res, data, status = 200) {
   res.writeHead(status, {
     'Content-Type': 'application/json',
@@ -94,7 +104,7 @@ function createRequestHandler(projectDir, distDir) {
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
       });
       res.end();
@@ -111,6 +121,19 @@ function createRequestHandler(projectDir, distDir) {
       } else if (pathname === '/api/blocked') {
         const blocked = await execBd(['blocked'], projectDir);
         jsonResponse(res, Array.isArray(blocked) ? blocked.map(normalizeIssue) : blocked);
+      } else if (pathname.startsWith('/api/issue/') && req.method === 'PATCH') {
+        const id = pathname.split('/api/issue/')[1];
+        if (!id || !/^[\w.\-]+$/.test(id)) {
+          errorResponse(res, 'Invalid issue ID', 400);
+          return;
+        }
+        const body = await readJsonBody(req);
+        if (!body || typeof body.description !== 'string') {
+          errorResponse(res, 'Missing required field: description', 400);
+          return;
+        }
+        await execCmd('bd', ['update', id, '--description', body.description], projectDir);
+        jsonResponse(res, { ok: true });
       } else if (pathname.startsWith('/api/issue/')) {
         const id = pathname.split('/api/issue/')[1];
         if (!id || !/^[\w.\-]+$/.test(id)) {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XIcon, ArrowLeft } from 'lucide-react'
+import { XIcon, ArrowLeft, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -126,12 +126,46 @@ export function IssueDetailPanel({
   const [contentReady, setContentReady] = useState(false)
   const fetchedDetail = useRef<IssueDetail | null>(null)
 
+  const [editingDescription, setEditingDescription] = useState(false)
+  const [draftDescription, setDraftDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const startEditing = useCallback(() => {
+    setDraftDescription(detail?.description || '')
+    setEditingDescription(true)
+  }, [detail])
+
+  const cancelEditing = useCallback(() => {
+    setEditingDescription(false)
+    setDraftDescription('')
+  }, [])
+
+  const saveDescription = useCallback(async () => {
+    if (!currentId) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/issue/${currentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: draftDescription }),
+      })
+      if (res.ok) {
+        setDetail(prev => prev ? { ...prev, description: draftDescription } : prev)
+        if (currentId) detailCache.delete(currentId)
+        setEditingDescription(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }, [currentId, draftDescription])
+
   // Sync currentId when issueId prop changes (new modal open)
   useEffect(() => {
     setCurrentId(issueId)
     setNavStack([])
     setContentReady(false)
     fetchedDetail.current = null
+    setEditingDescription(false)
   }, [issueId])
 
   // Reset stack when modal closes
@@ -140,6 +174,7 @@ export function IssueDetailPanel({
       setNavStack([])
       setContentReady(false)
       fetchedDetail.current = null
+      setEditingDescription(false)
     }
   }, [open])
 
@@ -352,12 +387,50 @@ export function IssueDetailPanel({
                 <Separator />
 
                 <div className="p-5 space-y-4">
-                  {detail.description && (
-                    <div>
-                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Description</h3>
-                      <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{detail.description}</p>
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Description</h3>
+                      {!editingDescription && (
+                        <button
+                          onClick={startEditing}
+                          className="rounded-sm opacity-50 hover:opacity-100 transition-opacity"
+                          aria-label="Edit description"
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                      )}
                     </div>
-                  )}
+                    {editingDescription ? (
+                      <div className="space-y-2">
+                        <textarea
+                          className="w-full min-h-[80px] rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+                          value={draftDescription}
+                          onChange={e => setDraftDescription(e.target.value)}
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveDescription}
+                            disabled={saving}
+                            className="px-3 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                          >
+                            {saving ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            disabled={saving}
+                            className="px-3 py-1 text-xs font-medium rounded-md border border-border hover:bg-accent disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : detail.description ? (
+                      <p className="text-sm whitespace-pre-wrap text-foreground leading-relaxed">{detail.description}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No description</p>
+                    )}
+                  </div>
 
                   {detail.close_reason && (
                     <div>

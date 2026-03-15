@@ -55,6 +55,18 @@ async function get(urlPath) {
   return { status: r.status, data, text };
 }
 
+async function patch(urlPath, body) {
+  const r = await fetch(`${baseUrl}${urlPath}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch {}
+  return { status: r.status, data, text };
+}
+
 describe('API endpoints', () => {
   it('GET /api/issues returns JSON array', async () => {
     mockExecFile((cmd, args) => {
@@ -421,6 +433,45 @@ describe('Branch-aware endpoints', () => {
       expect(names).toContain('node_modules');
       expect(names).toContain('coverage');
       expect(names).not.toContain('.git');
+    });
+  });
+
+  describe('PATCH /api/issue/:id', () => {
+    it('updates description via bd update', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'bd') {
+          expect(args[0]).toBe('update');
+          expect(args[1]).toBe('beads-board-abc');
+          expect(args).toContain('--description');
+          expect(args).toContain('New description text');
+          return '';
+        }
+        return '';
+      });
+      const res = await patch('/api/issue/beads-board-abc', { description: 'New description text' });
+      expect(res.status).toBe(200);
+      expect(res.data).toHaveProperty('ok', true);
+    });
+
+    it('returns 400 for invalid issue ID', async () => {
+      const res = await patch('/api/issue/invalid;id', { description: 'test' });
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error', 'Invalid issue ID');
+    });
+
+    it('returns 400 when description field is missing', async () => {
+      const res = await patch('/api/issue/beads-board-abc', {});
+      expect(res.status).toBe(400);
+      expect(res.data).toHaveProperty('error');
+    });
+
+    it('returns 500 when bd update fails', async () => {
+      mockExecFile((cmd, args) => {
+        if (cmd === 'bd') throw new Error('bd update failed: issue not found');
+        return '';
+      });
+      const res = await patch('/api/issue/beads-board-abc', { description: 'test' });
+      expect(res.status).toBe(500);
     });
   });
 
