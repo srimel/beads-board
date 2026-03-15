@@ -329,7 +329,7 @@ export function IssueDetailPanel({
             ) : detail ? (
               <ScrollArea className="flex-1 min-h-0">
                 <div className="p-5 pb-3">
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <div className={`flex items-center gap-2 flex-wrap mb-2${navStack.length > 0 ? ' mt-6' : ''}`}>
                     <span className={`text-xs font-semibold ${PRIORITY_COLORS[detail.priority] || PRIORITY_COLORS[4]}`}>
                       P{detail.priority}
                     </span>
