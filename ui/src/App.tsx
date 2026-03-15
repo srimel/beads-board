@@ -202,7 +202,10 @@ function App() {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between px-4 py-2 border-b border-border shrink-0">
-        <h1 className="text-lg font-bold tracking-tight">{projectName}</h1>
+        <div className="flex items-center gap-2">
+          <img src="/favicon.svg" alt="" className="h-7 w-7" />
+          <h1 className="text-lg font-bold tracking-tight">{projectName}</h1>
+        </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-muted-foreground">
