@@ -8,6 +8,11 @@ try {
 
 const activePtys = new Set();
 
+/** Allow tests to inject a mock pty module */
+function setPty(mockPty) {
+  pty = mockPty;
+}
+
 function getShell() {
   return process.platform === 'win32' ? 'powershell.exe' : 'bash';
 }
@@ -45,13 +50,23 @@ function attachTerminal(httpServer, projectDir) {
 
   wss.on('connection', (ws) => {
     const shell = getShell();
-    const ptyProcess = pty.spawn(shell, [], {
-      name: 'xterm-256color',
-      cols: 80,
-      rows: 24,
-      cwd: projectDir,
-      env: process.env,
-    });
+    let ptyProcess;
+    try {
+      ptyProcess = pty.spawn(shell, [], {
+        name: 'xterm-256color',
+        cols: 80,
+        rows: 24,
+        cwd: projectDir,
+        env: process.env,
+      });
+    } catch (err) {
+      console.error('Failed to spawn terminal:', err.message);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'exit', code: 1 }));
+        ws.close(1011, 'Terminal spawn failed');
+      }
+      return;
+    }
 
     activePtys.add(ptyProcess);
 
@@ -98,4 +113,4 @@ function cleanupAllPtys() {
   activePtys.clear();
 }
 
-module.exports = { attachTerminal, cleanupAllPtys };
+module.exports = { attachTerminal, cleanupAllPtys, setPty };
