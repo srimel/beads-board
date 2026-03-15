@@ -14,7 +14,8 @@ function setPty(mockPty) {
 }
 
 function getShell() {
-  return process.platform === 'win32' ? 'powershell.exe' : 'bash';
+  if (process.platform === 'win32') return 'powershell.exe';
+  return process.env.SHELL || 'bash';
 }
 
 /**
