@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { ArrowDownUp } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { BeadCard } from './BeadCard'
 import type { BeadIssue } from '@/lib/types'
 import type { CardSourceRect } from '@/App'
@@ -41,8 +42,8 @@ export function KanbanColumn({ title, issues, accentColor, loading, sortable, on
   const toggleSort = () => setSortMode(m => m === 'recent' ? 'priority' : 'recent')
 
   return (
-    <div className="min-w-0 flex-1">
-      <div className={`flex items-center gap-2 px-3 py-2 border-b-2 sticky top-0 z-10 bg-background ${accentColor}`}>
+    <div className="min-w-0 flex-1 flex flex-col">
+      <div className={`flex items-center gap-2 px-3 py-2 border-b-2 shrink-0 bg-background ${accentColor}`}>
         <h2 className="text-sm font-semibold">{title}</h2>
         <span className="text-xs text-muted-foreground">({issues.length})</span>
         {sortable && (
@@ -56,24 +57,26 @@ export function KanbanColumn({ title, issues, accentColor, loading, sortable, on
           </button>
         )}
       </div>
-      <div className="p-2">
-        {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 mb-2 rounded-lg" />
-          ))
-        ) : sortedIssues.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No issues</p>
-        ) : (
-          sortedIssues.map(issue => (
-            <BeadCard
-              key={issue.id}
-              issue={issue}
-              onClick={onIssueClick}
-              celebrating={celebratingIds?.has(issue.id)}
-            />
-          ))
-        )}
-      </div>
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="p-2">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 mb-2 rounded-lg" />
+            ))
+          ) : sortedIssues.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No issues</p>
+          ) : (
+            sortedIssues.map(issue => (
+              <BeadCard
+                key={issue.id}
+                issue={issue}
+                onClick={onIssueClick}
+                celebrating={celebratingIds?.has(issue.id)}
+              />
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 }

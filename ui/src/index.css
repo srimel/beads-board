@@ -205,6 +205,24 @@
   position: relative;
 }
 
+/* Custom thin scrollbar matching Radix ScrollArea style */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 12px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
 /* === Commit highlight animation === */
 @keyframes commit-highlight {
   0%, 100% { background-color: transparent; }

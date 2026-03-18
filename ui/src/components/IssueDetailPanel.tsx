@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { XIcon, ArrowLeft, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import type { CardSourceRect } from '@/App'
 import type { BeadIssue } from '@/lib/types'
 
@@ -362,7 +361,7 @@ export function IssueDetailPanel({
                 </div>
               </div>
             ) : detail ? (
-              <ScrollArea className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
                 <div className="p-5 pb-3">
                   <div className={`flex items-center gap-2 flex-wrap mb-2${navStack.length > 0 ? ' mt-6' : ''}`}>
                     <span className={`text-xs font-semibold ${PRIORITY_COLORS[detail.priority] || PRIORITY_COLORS[4]}`}>
@@ -488,7 +487,7 @@ export function IssueDetailPanel({
                     )}
                   </div>
                 </div>
-              </ScrollArea>
+              </div>
             ) : (
               <div className="flex items-center justify-center py-12">
                 <span className="text-sm text-muted-foreground">Issue not found</span>

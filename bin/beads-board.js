@@ -92,22 +92,12 @@ if (!fs.existsSync(path.join(projectDir, '.beads'))) {
 }
 
 // ---------------------------------------------------------------------------
-// Pidfile helpers
+// Pidfile helpers (shared module)
 // ---------------------------------------------------------------------------
 
-const PIDFILE = path.join(projectDir, '.beads-board.pid');
-
-function getRunningInstance() {
-  try {
-    const data = JSON.parse(fs.readFileSync(PIDFILE, 'utf8'));
-    process.kill(data.pid, 0); // throws if not running
-    return data;
-  } catch {
-    // Clean up stale pidfile
-    try { fs.unlinkSync(PIDFILE); } catch {}
-    return null;
-  }
-}
+const { createPidfileManager } = require('../server/pidfile.js');
+const pidfile = createPidfileManager(projectDir);
+function getRunningInstance() { return pidfile.getRunningInstance(); }
 
 // ---------------------------------------------------------------------------
 // Subcommands

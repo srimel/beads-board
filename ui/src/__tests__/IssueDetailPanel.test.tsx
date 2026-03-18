@@ -79,7 +79,7 @@ describe('IssueDetailPanel', () => {
     expect(dialog.className).toContain('max-h-[85vh]')
   })
 
-  it('renders ScrollArea with flex-1 and min-h-0 classes when content is present', async () => {
+  it('renders scrollable content area with correct classes when content is present', async () => {
     const { container } = render(
       <IssueDetailPanel
         issueId="bd-test1"
@@ -94,13 +94,13 @@ describe('IssueDetailPanel', () => {
       expect(screen.getByText('Test Issue Title')).toBeInTheDocument()
     })
 
-    const scrollArea = container.querySelector('[data-slot="scroll-area"]')
-    expect(scrollArea).toBeInTheDocument()
-    // ScrollArea should use flex-1 min-h-0 instead of max-h-[80vh]
-    expect(scrollArea!.className).toContain('flex-1')
-    expect(scrollArea!.className).toContain('min-h-0')
-    // Should NOT have max-h-[80vh] anymore
-    expect(scrollArea!.className).not.toContain('max-h-[80vh]')
+    // Uses a plain div with overflow-y-auto instead of Radix ScrollArea
+    // (Radix viewport height: 100% doesn't resolve correctly in flex containers)
+    const scrollDiv = container.querySelector('.overflow-y-auto')
+    expect(scrollDiv).toBeInTheDocument()
+    expect(scrollDiv!.className).toContain('flex-1')
+    expect(scrollDiv!.className).toContain('min-h-0')
+    expect(scrollDiv!.className).toContain('scrollbar-thin')
   })
 
   it('renders loading skeleton when content is not ready', () => {

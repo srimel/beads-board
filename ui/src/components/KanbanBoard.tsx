@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { KanbanColumn } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
 import type { CardSourceRect } from '@/App'
@@ -72,39 +71,37 @@ export function KanbanBoard({ issues, allIssues, ready, blocked: _, loading, onI
   )
 
   return (
-    <ScrollArea className="h-full">
-      <div className="flex gap-3">
-        <KanbanColumn
-          title="Backlog"
-          issues={backlog}
-          accentColor="border-[#7d8590]"
-          loading={loading}
-          onIssueClick={onIssueClick}
-        />
-        <KanbanColumn
-          title="Ready"
-          issues={ready}
-          accentColor="border-[#238636]"
-          loading={loading}
-          onIssueClick={onIssueClick}
-        />
-        <KanbanColumn
-          title="In Progress"
-          issues={inProgress}
-          accentColor="border-[#1f6feb]"
-          loading={loading}
-          onIssueClick={onIssueClick}
-        />
-        <KanbanColumn
-          title="Done"
-          issues={done}
-          accentColor="border-[#484f58]"
-          loading={loading}
-          sortable
-          onIssueClick={onIssueClick}
-          celebratingIds={newlyClosed}
-        />
-      </div>
-    </ScrollArea>
+    <div className="flex gap-2 h-full">
+      <KanbanColumn
+        title="Backlog"
+        issues={backlog}
+        accentColor="border-[#7d8590]"
+        loading={loading}
+        onIssueClick={onIssueClick}
+      />
+      <KanbanColumn
+        title="Ready"
+        issues={ready}
+        accentColor="border-[#238636]"
+        loading={loading}
+        onIssueClick={onIssueClick}
+      />
+      <KanbanColumn
+        title="In Progress"
+        issues={inProgress}
+        accentColor="border-[#1f6feb]"
+        loading={loading}
+        onIssueClick={onIssueClick}
+      />
+      <KanbanColumn
+        title="Done"
+        issues={done}
+        accentColor="border-[#484f58]"
+        loading={loading}
+        sortable
+        onIssueClick={onIssueClick}
+        celebratingIds={newlyClosed}
+      />
+    </div>
   )
 }
