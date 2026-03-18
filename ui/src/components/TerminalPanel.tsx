@@ -14,6 +14,8 @@ export interface TerminalPanelHandle {
   setFontSize: (size: number) => void
 }
 
+const SESSION_ID_KEY = 'beads-board-terminal-session-id'
+
 const DARK_THEME = {
   background: '#0d1117',
   foreground: '#e6edf3',
@@ -70,7 +72,9 @@ export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>
 
   const connect = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/terminal`)
+    const sessionId = sessionStorage.getItem(SESSION_ID_KEY)
+    const sessionParam = sessionId ? `?session=${encodeURIComponent(sessionId)}` : ''
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/terminal${sessionParam}`)
     wsRef.current = ws
     exitedRef.current = false
 
@@ -92,8 +96,27 @@ export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>
       const data = event.data
       try {
         const msg = JSON.parse(data)
+        if (msg.type === 'session-created') {
+          sessionStorage.setItem(SESSION_ID_KEY, msg.sessionId)
+          return
+        }
+        if (msg.type === 'session-restored') {
+          // Clear terminal before scrollback replay
+          terminalRef.current?.reset()
+          return
+        }
+        if (msg.type === 'session-replay-complete') {
+          return
+        }
+        if (msg.type === 'error') {
+          terminalRef.current?.writeln(
+            `\r\n\x1b[31mError: ${msg.message}\x1b[0m`
+          )
+          return
+        }
         if (msg.type === 'exit') {
           exitedRef.current = true
+          sessionStorage.removeItem(SESSION_ID_KEY)
           terminalRef.current?.writeln(
             `\r\n\x1b[90mProcess exited (code ${msg.code}). Press any key to restart.\x1b[0m`
           )
@@ -118,6 +141,8 @@ export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>
   }, [])
 
   const resetSession = useCallback(() => {
+    // Clear session ID so server creates a fresh PTY
+    sessionStorage.removeItem(SESSION_ID_KEY)
     // Set exitedRef true BEFORE closing so onclose handler doesn't auto-reconnect
     exitedRef.current = true
     wsRef.current?.close()
@@ -178,6 +203,7 @@ export const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>
       if (exitedRef.current) {
         // Restart on any keypress after exit
         exitedRef.current = false
+        sessionStorage.removeItem(SESSION_ID_KEY)
         terminal.clear()
         wsRef.current?.close()
         connect()

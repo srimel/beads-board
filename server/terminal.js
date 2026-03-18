@@ -6,7 +6,15 @@ try {
   // Dependencies not available — terminal feature disabled
 }
 
-const activePtys = new Set();
+const {
+  createSession,
+  getSession,
+  deleteSession,
+  isValidSessionId,
+  appendScrollback,
+  clearAllSessions,
+  DISCONNECT_TIMEOUT_MS,
+} = require('./terminal-sessions.js');
 
 /** Allow tests to inject a mock pty module */
 function setPty(mockPty) {
@@ -31,8 +39,8 @@ function attachTerminal(httpServer, projectDir) {
   const wss = new WebSocket.Server({ noServer: true });
 
   httpServer.on('upgrade', (req, socket, head) => {
-    const { pathname } = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    if (pathname !== '/ws/terminal') {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (url.pathname !== '/ws/terminal') {
       socket.destroy();
       return;
     }
@@ -44,63 +52,143 @@ function attachTerminal(httpServer, projectDir) {
       return;
     }
 
+    // Extract and validate session ID from query params
+    const rawId = url.searchParams.get('session');
+    req.terminalSessionId = (rawId && isValidSessionId(rawId)) ? rawId : null;
+
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
     });
   });
 
-  wss.on('connection', (ws) => {
-    const shell = getShell();
-    let ptyProcess;
-    try {
-      ptyProcess = pty.spawn(shell, [], {
-        name: 'xterm-256color',
-        cols: 80,
-        rows: 24,
-        cwd: projectDir,
-        env: process.env,
+  wss.on('connection', (ws, req) => {
+    const requestedSessionId = req.terminalSessionId;
+    let session = requestedSessionId ? getSession(requestedSessionId) : null;
+
+    if (session && session.pty) {
+      // Reattach to existing session
+
+      // Cancel disconnect timer
+      if (session.disconnectTimer) {
+        clearTimeout(session.disconnectTimer);
+        session.disconnectTimer = null;
+      }
+
+      session.ws = ws;
+
+      // Send session-restored, then replay scrollback
+      ws.send(JSON.stringify({ type: 'session-restored' }));
+
+      // Enter replay mode — queue new PTY output
+      session.replaying = true;
+
+      // Send scrollback chunks
+      for (const chunk of session.scrollback) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(chunk);
+        }
+      }
+
+      // Flush any output that arrived during replay
+      for (const queued of session.outputQueue) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(queued);
+        }
+      }
+      session.outputQueue = [];
+      session.replaying = false;
+
+      // Signal replay complete
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'session-replay-complete' }));
+      }
+    } else {
+      // Create new session
+      try {
+        session = createSession({ cols: 80, rows: 24, evictIdle: true });
+      } catch (err) {
+        ws.send(JSON.stringify({ type: 'error', message: err.message }));
+        ws.close();
+        return;
+      }
+
+      session.ws = ws;
+
+      const shell = getShell();
+      let ptyProcess;
+      try {
+        ptyProcess = pty.spawn(shell, [], {
+          name: 'xterm-256color',
+          cols: 80,
+          rows: 24,
+          cwd: projectDir,
+          env: process.env,
+        });
+      } catch (err) {
+        console.error('Failed to spawn terminal:', err.message);
+        deleteSession(session.id);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'exit', code: 1 }));
+          ws.close(1011, 'Terminal spawn failed');
+        }
+        return;
+      }
+
+      session.pty = ptyProcess;
+
+      ptyProcess.onData((data) => {
+        appendScrollback(session, data);
+        if (session.replaying) {
+          session.outputQueue.push(data);
+        } else if (session.ws && session.ws.readyState === WebSocket.OPEN) {
+          session.ws.send(data);
+        }
       });
-    } catch (err) {
-      console.error('Failed to spawn terminal:', err.message);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'exit', code: 1 }));
-        ws.close(1011, 'Terminal spawn failed');
-      }
-      return;
+
+      ptyProcess.onExit(({ exitCode }) => {
+        if (session.ws && session.ws.readyState === WebSocket.OPEN) {
+          session.ws.send(JSON.stringify({ type: 'exit', code: exitCode }));
+        }
+        if (session.disconnectTimer) {
+          clearTimeout(session.disconnectTimer);
+        }
+        deleteSession(session.id);
+      });
+
+      // Notify client of new session
+      ws.send(JSON.stringify({ type: 'session-created', sessionId: session.id }));
     }
-
-    activePtys.add(ptyProcess);
-
-    ptyProcess.onData((data) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-
-    ptyProcess.onExit(({ exitCode }) => {
-      activePtys.delete(ptyProcess);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'exit', code: exitCode }));
-      }
-    });
 
     ws.on('message', (msg) => {
       const str = msg.toString();
       try {
         const parsed = JSON.parse(str);
         if (parsed.type === 'resize' && parsed.cols && parsed.rows) {
-          ptyProcess.resize(parsed.cols, parsed.rows);
+          session.cols = parsed.cols;
+          session.rows = parsed.rows;
+          if (session.pty) session.pty.resize(parsed.cols, parsed.rows);
           return;
         }
       } catch {
         // Not JSON — raw terminal input
       }
-      ptyProcess.write(str);
+      if (session.pty) session.pty.write(str);
     });
 
     ws.on('close', () => {
-      activePtys.delete(ptyProcess);
-      ptyProcess.kill();
+      // Guard: only act if this WS is still the current one for the session.
+      // On reconnect, a new WS replaces session.ws before the old WS fires close.
+      if (session.ws !== ws) return;
+
+      session.ws = null;
+
+      // Start disconnect timer — keep PTY alive for reconnect
+      session.disconnectTimer = setTimeout(() => {
+        if (session.pty) {
+          try { session.pty.kill(); } catch {}
+        }
+        deleteSession(session.id);
+      }, DISCONNECT_TIMEOUT_MS);
     });
   });
 
@@ -108,10 +196,7 @@ function attachTerminal(httpServer, projectDir) {
 }
 
 function cleanupAllPtys() {
-  for (const p of activePtys) {
-    try { p.kill(); } catch {}
-  }
-  activePtys.clear();
+  clearAllSessions();
 }
 
 module.exports = { attachTerminal, cleanupAllPtys, setPty };
