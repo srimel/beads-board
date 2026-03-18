@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
-import { KanbanColumn } from './KanbanColumn'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { KanbanColumn, KanbanColumnHeader } from './KanbanColumn'
 import type { BeadIssue } from '@/lib/types'
 import type { CardSourceRect } from '@/App'
 
@@ -70,38 +71,48 @@ export function KanbanBoard({ issues, allIssues, ready, blocked: _, loading, onI
     !readyIds.has(i.id)
   )
 
+  const columns = [
+    { title: 'Backlog', issues: backlog, accentColor: 'border-[#7d8590]' },
+    { title: 'Ready', issues: ready, accentColor: 'border-[#238636]' },
+    { title: 'In Progress', issues: inProgress, accentColor: 'border-[#1f6feb]' },
+    { title: 'Done', issues: done, accentColor: 'border-[#484f58]', sortable: true, celebratingIds: newlyClosed },
+  ] as const
+
+  const [sortMode, setSortMode] = useState<'recent' | 'priority'>('recent')
+  const toggleSort = () => setSortMode(m => m === 'recent' ? 'priority' : 'recent')
+
   return (
-    <div className="flex gap-2 h-full">
-      <KanbanColumn
-        title="Backlog"
-        issues={backlog}
-        accentColor="border-[#7d8590]"
-        loading={loading}
-        onIssueClick={onIssueClick}
-      />
-      <KanbanColumn
-        title="Ready"
-        issues={ready}
-        accentColor="border-[#238636]"
-        loading={loading}
-        onIssueClick={onIssueClick}
-      />
-      <KanbanColumn
-        title="In Progress"
-        issues={inProgress}
-        accentColor="border-[#1f6feb]"
-        loading={loading}
-        onIssueClick={onIssueClick}
-      />
-      <KanbanColumn
-        title="Done"
-        issues={done}
-        accentColor="border-[#484f58]"
-        loading={loading}
-        sortable
-        onIssueClick={onIssueClick}
-        celebratingIds={newlyClosed}
-      />
+    <div className="flex flex-col h-full">
+      {/* Fixed header row */}
+      <div className="flex gap-2 shrink-0">
+        {columns.map(col => (
+          <KanbanColumnHeader
+            key={col.title}
+            title={col.title}
+            count={col.issues.length}
+            accentColor={col.accentColor}
+            sortable={'sortable' in col && col.sortable}
+            sortMode={sortMode}
+            onToggleSort={toggleSort}
+          />
+        ))}
+      </div>
+      {/* Single scroll area for all columns */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="flex gap-2 pr-3">
+          {columns.map(col => (
+            <KanbanColumn
+              key={col.title}
+              issues={col.issues}
+              loading={loading}
+              onIssueClick={onIssueClick}
+              sortable={'sortable' in col && col.sortable}
+              sortMode={sortMode}
+              celebratingIds={'celebratingIds' in col ? col.celebratingIds : undefined}
+            />
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   )
 }
